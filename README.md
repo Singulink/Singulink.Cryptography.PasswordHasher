@@ -4,11 +4,15 @@
 [![View nuget packages](https://img.shields.io/nuget/v/Singulink.Cryptography.PasswordHasher.svg)](https://www.nuget.org/packages/Singulink.Cryptography.PasswordHasher/)
 [![Build and Test](https://github.com/Singulink/Singulink.Cryptography.PasswordHasher/workflows/build%20and%20test/badge.svg)](https://github.com/Singulink/Singulink.Cryptography.PasswordHasher/actions?query=workflow%3A%22build+and+test%22)
 
-PasswordHasher greatly simplifies implementing security best practices with upgradable hash algorithm passwords. PasswordHasher algorithms are "upgradable" in the sense that the library facilitates upgrading password hashes to a different algorithm or increasing the number of iterations that are performed.
+**Singulink.Cryptography.PasswordHasher** greatly simplifies implementing security best practices with upgradable hash algorithm passwords. Hashes are upgradable in the sense that you can easily transition them to a different algorithm or increase the total number of iterations as periodically required in order to maintain the desired level of password security.
 
-Out of the box, PasswordHasher supports SHA256, SHA384 and SHA512 using PBKDF2 for iteration (as well as SHA1, but only for upgrading legacy hashes). Any other algorithm (i.e. bcrypt, scrypt, etc) can be easily plugged into PasswordHasher by implementing the `PasswordHashAlgorithm` class, which only requires overriding a single `CreateHash` method.
+Support for SHA256, SHA384 and SHA512 using PBKDF2 for iteration is included out-of-the-box (as well as SHA1, but only for reading/upgrading legacy hashes). Other algorithms (i.e. bcrypt, scrypt, etc) can be easily plugged in by adding a custom implementation of the `PasswordHashAlgorithm` class, which only requires overriding a single `Hash` method which generates the hash.
 
-PasswordHasher is part of the Singulink Libraries collection. Visit https://github.com/Singulink/ to see the full list of libraries available.
+### About Singulink
+
+*Shameless plug*: We are a small team of engineers and designers dedicated to building beautiful, functional and well-engineered software solutions. We offer very competitive rates as well as fixed-price contracts and welcome inquiries to discuss any custom development / project support needs you may have.
+
+This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
 ## Installation
 
@@ -20,15 +24,19 @@ The package is available on NuGet - simply install the `Singulink.Cryptography.P
 - Xamarin.iOS 12.16+
 - Xamarin.Android 10.0+
 
+## API
+
+You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Cryptography.PasswordHasher). All the functionality is exposed via the `PasswordHasher` and `PasswordHashAlgorithm` classes in the `Singulink.Cryptography` namespace.
+
 ## Usage
 
-To create a PasswordHasher you use the following constructor:
+To create a `PasswordHasher` you use the following constructor:
 
 ```c#
 public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, params PasswordHashAlgorithm[] legacyAlgorithms)
 ```
 
-The `algorithm` and `iterations` parameters specify what the "main" algorithm should be. The `legacyAlgorithms` parameter specifies any additional algorithms that the hasher should be capable of working with, i.e. any older hash algorithms that were substituted for the main algorithm but which the database may still utilize for hashes that have not been fully rehashed yet.
+The `algorithm` and `iterations` parameters specify what the main algorithm and total number of iterations should be. The `legacyAlgorithms` parameter specifies any additional algorithms that the hasher should be capable of hashing, i.e. any older hash algorithms that were upgraded to the main algorithm but which may still be present in the database until upgraded hash chains are rehashed.
 
 The `PasswordHasher` class contains the following primary methods:
 
@@ -43,9 +51,9 @@ string? UpgradeHashChain(string hash);
 The first two methods should be self-explanatory: `Hash` produces a password hash, where-as `Verify` is used to verify a hash/password combo.
 
 The last three methods are where it gets interesting:
-- `RequiresRehash`: Returns true if a hash should be regenerated from the known password to eliminate algorithm chaining or to produce a hash with the desired algorithm and iteration count.
-- `RequiresHashChainUpgrade`: Returns true if the hash chain should be upgraded so that it utilizes the desired algorithm and number of iterations.
-- `UpgradeHashChain`: Upgrades the specified hash to the main algorithm and required number of iterations without knowing the password via algorithm chaining. The resulting hash will return true if passed into the `RequiresRehash" method, which should be tested on successful user login if hash chains were upgraded at some point so that a new hash without chaining can replace the chained hash. This method returns null if the hash does not require an upgrade. Hashes that already use the main algorithm with a lower number of iterations will chain the difference needed to reach the required total iteration count.
+- `RequiresRehash`: Returns true if a hash should be regenerated from the known password to eliminate algorithm chaining or to produce a hash that uses the main algorithm and required number of iterations.
+- `RequiresHashChainUpgrade`: Returns true if the hash chain should be upgraded so that it utilizes the main algorithm and required number of iterations.
+- `UpgradeHashChain`: Upgrades the specified hash to use the main algorithm and required number of iterations without knowing the password via algorithm chaining. The resulting hash will return true if passed into the `RequiresRehash` method, which should be tested on successful user login if hash chains were upgraded at some point so that a new hash without chaining replaces the chained hash. This method returns `null` if the hash does not require an upgrade. Hashes that already use the main algorithm with a lower number of iterations will chain the difference needed to reach the required total number of iterations.
 
 The format of the hash string is as follows:
 
@@ -77,32 +85,47 @@ string hash = hasher.Hash(password);
 // Verify the password
 
 bool success = hasher.Verify(hash, password); // true
+```
 
-// Upgrade hashes to SHA256 with 20,000 iterations by running a script like this:
+Hashes can be upgraded by writing a script (i.e. a CSX script) or a small utility program that does something like the following:
 
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 20000);
+```c#
+// Upgrade hashes in the database to SHA512 with 20,000 iterations. The SHA256 algorithm must be 
+// passed into the legacyAlgorithms parameter so the hasher can read the current SHA256 hashes.
 
-foreach (var user in GetUsers())
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, PasswordHashAlgorithm.SHA256);
+
+foreach (var user in database.GetUsers())
 {
     if (hasher.RequiresHashChainUpgrade(user.PasswordHash))
         user.PasswordHash = hasher.UpgradeHashChain(user.PasswordHash);
 }
 
-// Hashes in the database are now composed of a 10,000 iteration hash chained to 
-// another 10,000 iteration hash.
+database.SaveChanges();
+```
 
-// Use login code like the following to regenerate chained hashes directly from the password
-// to eliminate the chains:
+After running the script above, hashes in the database would now be composed of a SHA256 10,000 iteration hash which is chained to a SHA512 20,000 iteration hash. You will then want to rehash chained hashes to eliminate the chaining upon successful authentication using login code similar to the following:
+
+```c#
+// The SHA256 algorithm must still be passed into the legacyAlgorithms parameter as the chained
+// hashes contain a SHA256 component until they are rehashed.
+
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, PasswordHashAlgorithm.SHA256);
 
 bool Login(string username, string password)
 {
-    var user = GetUser(username);
+    var user = database.GetUser(username);
 
     if (user == null || !hasher.Verify(user.PasswordHash, password))
         return false;
 
-    // Generate a new 20,000 iteration unchained SHA256 hash if it is currently chained
-    if (hasher.RequiresRehash(user.PasswordHash))
+    if (hasher.RequiresRehash(user.PasswordHash)) 
+    {
+        // Generate a "pure" SHA512 hash since it is currently chained with the old SHA256 hash       
         user.PasswordHash = hasher.Hash(password);
+        database.SaveChanges();
+    }
+    
+    return true;
 }
 ```
