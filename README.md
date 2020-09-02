@@ -50,33 +50,33 @@ The last three methods are where it gets interesting:
 The format of the hash string is as follows:
 
 ```
-[hash algorithm]:[iterations]:[salt] [hash]
+hash_algorithm:iterations:salt hash
 ```
 
 If the hash chain was upgraded at some point (i.e. had additional algorithms or iterations applied to it), then those are added to the list. For example, if we started with SHA256 with 1000 iterations and upgraded to SHA512 with 20,000 iterations, the hash string might look something like this:
 
 ```
-"SHA256:1000:9QTkU8cSJ8xXkUdrx8qQVg== SHA512:20000:dlZfZk6CQstiyUAnZH5L7w== 07qYVKg1yx+AiRP+2oLxv3ozRmJ4tvb/IkgnsCO40LXT8Pm+bXXQnHoqKTQMy7e4IbMbTzOVH7cDqqBZ5RyygA=="
+SHA256:1000:9QTkU8cSJ8xXkUdrx8qQVg== SHA512:20000:dlZfZk6CQstiyUAnZH5L7w== 07qYVKg1yx+AiRP+2oLxv3ozRmJ4tvb/IkgnsCO40LXT8Pm+bXXQnHoqKTQMy7e4IbMbTzOVH7cDqqBZ5RyygA==
 ```
 
 Usage of the library is best demonstrated with an example:
 
 ```c#
-string mikePassword = "ABCDEFEG";
-string rossPassword = "12345678";
+using Singulink.Cryprography;
+
+string password = "12345678";
 
 // Create hasher that uses SHA256 with 10,000 PBKDF2 iterations
 
 var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 10000);
 
-// Create password hashes for Mike and Ross
+// Create a password hash
 
-string mikeHash = hasher.Hash(mikePassword);
-string rossHash = hasher.Hash(rossPassword);
+string hash = hasher.Hash(password);
 
-// Verify Mike's password
+// Verify the password
 
-bool success = hasher.Verify(mikeHash, mikePassword); // true
+bool success = hasher.Verify(hash, password); // true
 
 // Upgrade hashes to SHA256 with 20,000 iterations by running a script like this:
 
@@ -88,10 +88,11 @@ foreach (var user in GetUsers())
         user.PasswordHash = hasher.UpgradeHashChain(user.PasswordHash);
 }
 
-// Hashes in the database are now composed of a 10,000 iteration SHA256 hash chained to 
-// another 10,000 iteration SHA256 hash.
-// Use login code as follows so that upgraded hash chains are rehashed to a normal unchained 
-// hash on successful login:
+// Hashes in the database are now composed of a 10,000 iteration hash chained to 
+// another 10,000 iteration hash.
+
+// Use login code like the following to regenerate chained hashes directly from the password
+// to eliminate the chains:
 
 bool Login(string username, string password)
 {
@@ -100,7 +101,7 @@ bool Login(string username, string password)
     if (user == null || !hasher.Verify(user.PasswordHash, password))
         return false;
 
-    // Generate a new 20,000 iteration unchained SHA256 hash if needed
+    // Generate a new 20,000 iteration unchained SHA256 hash if it is currently chained
     if (hasher.RequiresRehash(user.PasswordHash))
         user.PasswordHash = hasher.Hash(password);
 }
