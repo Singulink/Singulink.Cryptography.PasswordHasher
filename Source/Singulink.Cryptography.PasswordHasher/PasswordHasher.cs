@@ -107,6 +107,9 @@ namespace Singulink.Cryptography
         /// </summary>
         /// <param name="password">The password to hash.</param>
         /// <returns>A string containing the normalization setting, master key ID, algorith ID, number of iterations, salt value and password hash.</returns>
+        /// <exception cref="ArgumentException">
+        /// If normalization is enabled then password contained invalid Unicode characters or disallowed characters (i.e. control characters).
+        /// </exception>
         public string Hash(string password)
         {
             return GetPreamble(Normalize) + HashWithoutPreamble(GetPasswordBytes(password, Normalize), Iterations);
