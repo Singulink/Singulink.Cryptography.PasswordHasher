@@ -12,10 +12,10 @@ namespace Singulink.Cryptography.Tests
         private const string PasswordWithIllegalChars = "f3l43foj\nk*#lKSEF";
 
         [DataTestMethod]
-        [DataRow(false, false, DisplayName = "No normalization or encryption")]
-        [DataRow(false, true, DisplayName = "No normalization, with encryption")]
-        [DataRow(true, false, DisplayName = "With normalization, no encryption")]
-        [DataRow(true, true, DisplayName = "With normalization and encryption")]
+        [DataRow(false, false)]
+        [DataRow(false, true)]
+        [DataRow(true, false)]
+        [DataRow(true, true)]
         public void UpdateHashChain(bool normalize, bool encrypt)
         {
             byte[] key = new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 };
