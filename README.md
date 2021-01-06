@@ -10,7 +10,7 @@ Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) 
 
 An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included out-of-the-box, but other algorithms can be easily plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class which only requires overriding an `Encrypt`, `Decrypt` and `IsValidKeySize` method. Master keys can be updated or rotated with minimal effort and should be generated from a completely random source.
 
-**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to normalization Form C as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
+**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to Normalization Form C as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
 
 ### About Singulink
 
@@ -85,7 +85,6 @@ The format of the hash string is as follows:
 
 ```
 !normalization_version #encryption_parameters_id hash_algorithm_id:iterations:salt hash
-
 ```
 
 The first two parts are optional, so if normalization or encryption is not enabled then those elements are omitted.
@@ -214,7 +213,7 @@ bool Login(string username, string password)
 }
 ```
 
-If you don't want to mass-update all the hashes up-front, you can simply skip that step and use the code above to rehash passwords incrementally when users successfully login, or a combination of both approaches (rehash on login for a period of time before mass-updating any leftover old hashes).
+If you don't want to mass-update all the hashes up-front, you can simply skip that step and use the code above to rehash passwords incrementally when users successfully login, or a combination of both approaches (i.e. rehash on login for a period of time before mass-updating any leftover old hashes).
 
 ### Adding or updating hash encryption
 
@@ -279,4 +278,4 @@ var hasher = new PasswordHasher(argon2Algorithm, 5);
 string hash = hasher.Hash(password);
 ```
 
-All the features of `PasswordHasher` work as you would expect with Argon2. The only gotcha is that all the Argon2 parameters must stay the same for incremental iteration chaining to be utilized when `Update()` is called. If any of the parameters change, it is considered a new algorithm and the full number of iterations will be chained to the previous hash.
+All the features of `PasswordHasher` work as you would expect with Argon2. It is noteworthy to add that all the Argon2 parameters must stay the same for incremental iteration chaining to be utilized when `Update()` is called. If any of the parameters change, it is considered a new algorithm and the full number of iterations will be chained to the previous hash. Since every set of parameters is considered a different algorithm, make sure you add the `Argon2HashAlgorithm` instance with the old parameters to `PasswordHasherOptions.LegacyHashAlgorithms` so the hasher knows how to read those hashes.
