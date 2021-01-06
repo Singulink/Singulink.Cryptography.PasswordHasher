@@ -166,10 +166,11 @@ namespace Singulink.Cryptography.Tests
         }
 
         [TestMethod]
-        public void Rehash()
+        public void RehashWithIllegalChars()
         {
             var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
             string hash = hasher.Hash(PasswordWithIllegalChars);
+            Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
             Assert.IsTrue(hasher.Verify(hash, PasswordWithIllegalChars));
             Assert.IsFalse(hasher.RequiresRehash(hash, PasswordWithIllegalChars));
 
@@ -182,9 +183,23 @@ namespace Singulink.Cryptography.Tests
             hash = hasher.Rehash(PasswordWithIllegalChars);
             Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
             Assert.IsTrue(hasher.Verify(hash, PasswordWithIllegalChars));
+            Assert.IsFalse(hasher.Verify(hash, Password));
+        }
+
+        [TestMethod]
+        public void RehashWithLegalChars()
+        {
+            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
+            string hash = hasher.Hash(Password);
+            Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
+            Assert.IsTrue(hasher.Verify(hash, Password));
+
+            hasher.Normalize = true;
+            Assert.IsTrue(hasher.RequiresRehash(hash, Password));
 
             hash = hasher.Rehash(Password);
             Assert.IsTrue(hash.StartsWith("!", StringComparison.Ordinal));
+            Assert.IsFalse(hasher.RequiresRehash(hash, Password));
             Assert.IsTrue(hasher.Verify(hash, Password));
             Assert.IsFalse(hasher.Verify(hash, PasswordWithIllegalChars));
         }
