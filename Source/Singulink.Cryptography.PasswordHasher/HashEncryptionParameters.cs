@@ -28,9 +28,9 @@ namespace Singulink.Cryptography
         /// Initializes a new instance of the <see cref="HashEncryptionParameters"/> class using the given ID, key and algorithm.
         /// </summary>
         /// <param name="id">A unique ID identifying this set of encryption parameters.</param>
-        /// <param name="key">The master key used to encrypt the password hash.</param>
         /// <param name="algorithm">The algorithm used to encrypt the password hash.</param>
-        public HashEncryptionParameters(int id, byte[] key, HashEncryptionAlgorithm algorithm)
+        /// <param name="key">The master key used to encrypt the password hash.</param>
+        public HashEncryptionParameters(int id, HashEncryptionAlgorithm algorithm, byte[] key)
         {
             if (!algorithm.IsValidKeySize(key.Length))
                 throw new ArgumentException("The key provided is not a valid length for the given algorithm.", nameof(key));

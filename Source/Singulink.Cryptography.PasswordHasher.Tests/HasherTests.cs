@@ -18,10 +18,8 @@ namespace Singulink.Cryptography.Tests
         [DataRow(true, true)]
         public void UpdateHashChain(bool normalize, bool encrypt)
         {
-            byte[] key = new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 };
-
             var options = new PasswordHasherOptions {
-                EncryptionParameters = encrypt ? new(123, key, HashEncryptionAlgorithm.AES128) : null,
+                EncryptionParameters = encrypt ? new(123, HashEncryptionAlgorithm.AES128, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }) : null,
                 Normalize = normalize,
             };
 
@@ -107,8 +105,8 @@ namespace Singulink.Cryptography.Tests
         [TestMethod]
         public void UpdateMasterKey()
         {
-            HashEncryptionParameters encryption1 = new(123, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }, HashEncryptionAlgorithm.AES128);
-            HashEncryptionParameters encryption2 = new(456, new byte[] { 44, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }, HashEncryptionAlgorithm.AES128);
+            HashEncryptionParameters encryption1 = new(123, HashEncryptionAlgorithm.AES128, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 });
+            HashEncryptionParameters encryption2 = new(456, HashEncryptionAlgorithm.AES128, new byte[] { 44, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 });
 
             var options1 = new PasswordHasherOptions {
                 EncryptionParameters = encryption1,
