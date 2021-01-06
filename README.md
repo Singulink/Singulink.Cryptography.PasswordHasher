@@ -6,7 +6,11 @@
 
 **Singulink.Cryptography.PasswordHasher** greatly simplifies implementing security best practices with upgradable hash algorithm passwords. Hashes are upgradable in the sense that you can easily transition them to a different algorithm or increase the total number of iterations as periodically required in order to maintain the desired level of password security.
 
-Support for SHA256, SHA384 and SHA512 using PBKDF2 for iteration is included out-of-the-box (as well as SHA1, but only for reading/upgrading legacy hashes). Other algorithms (i.e. bcrypt, scrypt, etc) can be easily plugged in by adding a custom implementation of the `PasswordHashAlgorithm` class, which only requires overriding a single `Hash` method which generates the hash.
+Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) is included out-of-the-box. PBKDF2 with SHA1 is also supported but only for reading/upgrading legacy hashes. Other algorithms (i.e. bcrypt, scrypt, etc) can be easily plugged in by adding a custom implementation of the `PasswordHashAlgorithm` class, which only requires overriding a single `Hash` method which generates the hash.
+
+An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included out-of-the-box, but other algorithms can be easily plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class which only requires overriding an `Encrypt`, `Decrypt` and `IsValidKeySize` method. Master keys can be updated or rotated with minimal effort.
+
+**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to normalization Form C as per the spec. Normalization can be turned on or off with a simple boolean property.
 
 ### About Singulink
 
@@ -16,7 +20,7 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ## Installation
 
-The package is available on NuGet - simply install the `Singulink.Cryptography.PasswordHasher` package.
+The package is available on NuGet - simply install the `Singulink.Cryptography.PasswordHasher` package. If Argon2 support is needed then also install the `Singulink.Cryptography.PasswordHasher.Argon2` package.
 
 **Supported Runtimes**: Anywhere .NET Standard 2.1+ is supported, including:
 - .NET Core 3.0+

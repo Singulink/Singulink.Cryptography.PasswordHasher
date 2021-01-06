@@ -19,7 +19,11 @@ namespace Singulink.Cryptography.Tests
         public void UpdateHashChain(bool normalize, bool encrypt)
         {
             byte[] key = new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 };
-            HashEncryptionParameters encryption = encrypt ? new(123, key, HashEncryptionAlgorithm.AES128) : null;
+
+            var options = new PasswordHasherOptions {
+                EncryptionParameters = encrypt ? new(123, key, HashEncryptionAlgorithm.AES128) : null,
+                Normalize = normalize,
+            };
 
             int extraHashSections = 0;
 
@@ -29,7 +33,7 @@ namespace Singulink.Cryptography.Tests
             if (encrypt)
                 extraHashSections++;
 
-            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 1000, encryption) { Normalize = normalize };
+            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 1000, options);
 
             string sha256Hash1000Iterations = hasher.Hash(Password);
             Assert.AreEqual(2 + extraHashSections, sha256Hash1000Iterations.Split(' ').Length);
@@ -39,7 +43,7 @@ namespace Singulink.Cryptography.Tests
             Assert.IsFalse(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
             Assert.IsTrue(hasher.Verify(sha256Hash1000Iterations, Password));
 
-            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 3000, encryption) { Normalize = normalize };
+            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 3000, options);
 
             Assert.IsTrue(hasher.RequiresUpdate(sha256Hash1000Iterations));
             Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
@@ -54,7 +58,7 @@ namespace Singulink.Cryptography.Tests
             Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Then2000Iterations, Password));
             Assert.IsTrue(hasher.Verify(sha256Hash1000Then2000Iterations, Password));
 
-            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 8000, encryption) { Normalize = normalize };
+            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 8000, options);
             Assert.IsTrue(hasher.RequiresUpdate(sha256Hash1000Iterations));
             Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
             Assert.IsTrue(hasher.Verify(sha256Hash1000Iterations, Password));
@@ -78,8 +82,8 @@ namespace Singulink.Cryptography.Tests
             Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Then7000Iterations, Password));
             Assert.IsTrue(hasher.Verify(sha256Hash1000Then7000Iterations, Password));
 
-            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, encryption) { Normalize = normalize };
-            hasher.AddLegacyHashAlgorithms(PasswordHashAlgorithm.SHA256);
+            options.LegacyHashAlgorithms.Add(PasswordHashAlgorithm.SHA256);
+            hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options);
 
             string sha512HashFromSha256Hash1000Iterations = hasher.Update(sha256Hash1000Iterations)!;
             Assert.IsNotNull(sha512HashFromSha256Hash1000Iterations);
@@ -103,18 +107,28 @@ namespace Singulink.Cryptography.Tests
         [TestMethod]
         public void UpdateMasterKey()
         {
-            byte[] key1 = new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 };
-            HashEncryptionParameters encryption1 = new(123, key1, HashEncryptionAlgorithm.AES128);
+            HashEncryptionParameters encryption1 = new(123, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }, HashEncryptionAlgorithm.AES128);
+            HashEncryptionParameters encryption2 = new(456, new byte[] { 44, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }, HashEncryptionAlgorithm.AES128);
 
-            byte[] key2 = new byte[] { 44, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 };
-            HashEncryptionParameters encryption2 = new(456, key2, HashEncryptionAlgorithm.AES128);
+            var options1 = new PasswordHasherOptions {
+                EncryptionParameters = encryption1,
+            };
+
+            var options2_0 = new PasswordHasherOptions {
+                EncryptionParameters = encryption2,
+            };
+
+            var options2_1 = new PasswordHasherOptions {
+                EncryptionParameters = encryption2,
+                LegacyEncryptionParameters = { encryption1 },
+            };
 
             var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000);
 
             string hash = hasher.Hash(Password);
             Assert.IsTrue(hasher.Verify(hash, Password));
 
-            var hasher1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, encryption1);
+            var hasher1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options1);
             Assert.IsTrue(hasher1.RequiresUpdate(hash));
 
             string hash1 = hasher1.Update(hash)!;
@@ -123,7 +137,7 @@ namespace Singulink.Cryptography.Tests
             Assert.IsTrue(hasher1.Verify(hash1, Password));
             Assert.ThrowsException<FormatException>(() => hasher.Verify(hash1, Password));
 
-            var hasher2_0 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, encryption2);
+            var hasher2_0 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options2_0);
             Assert.IsTrue(hasher2_0.RequiresUpdate(hash));
             Assert.ThrowsException<FormatException>(() => hasher2_0.RequiresUpdate(hash1));
 
@@ -131,8 +145,7 @@ namespace Singulink.Cryptography.Tests
             Assert.IsTrue(hasher2_0.Verify(hash2_0, Password));
             Assert.ThrowsException<FormatException>(() => hasher2_0.Update(hash1));
 
-            var hasher2_1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, encryption2);
-            hasher2_1.AddLegacyEncryptionParameters(encryption1);
+            var hasher2_1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options2_1);
             Assert.IsTrue(hasher2_1.RequiresUpdate(hash));
             Assert.IsTrue(hasher2_1.RequiresUpdate(hash1));
 
@@ -148,7 +161,8 @@ namespace Singulink.Cryptography.Tests
         [TestMethod]
         public void Normalization()
         {
-            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA384, 100) { Normalize = false };
+            PasswordHasherOptions options = new() { Normalize = false };
+            PasswordHasher hasher = new(PasswordHashAlgorithm.SHA384, 100, options);
 
             string hash = hasher.Hash(Password);
             Assert.IsFalse(hasher.RequiresUpdate(hash));
@@ -156,7 +170,8 @@ namespace Singulink.Cryptography.Tests
             Assert.IsTrue(hasher.Verify(hash, Password));
             Assert.IsFalse(hasher.Verify(hash, PasswordWithNormalSpace));
 
-            hasher.Normalize = true;
+            options.Normalize = true;
+            hasher = new(PasswordHashAlgorithm.SHA384, 100, options);
             Assert.IsFalse(hasher.RequiresUpdate(hash));
             Assert.IsTrue(hasher.RequiresRehash(hash, Password));
 
@@ -168,13 +183,15 @@ namespace Singulink.Cryptography.Tests
         [TestMethod]
         public void RehashWithIllegalChars()
         {
-            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
+            PasswordHasherOptions options = new() { Normalize = false };
+            PasswordHasher hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
             string hash = hasher.Hash(PasswordWithIllegalChars);
             Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
             Assert.IsTrue(hasher.Verify(hash, PasswordWithIllegalChars));
             Assert.IsFalse(hasher.RequiresRehash(hash, PasswordWithIllegalChars));
 
-            hasher.Normalize = true;
+            options.Normalize = true;
+            hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
             Assert.IsFalse(hasher.RequiresRehash(hash, PasswordWithIllegalChars));
 
             hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 400);
@@ -189,12 +206,14 @@ namespace Singulink.Cryptography.Tests
         [TestMethod]
         public void RehashWithLegalChars()
         {
-            var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
+            PasswordHasherOptions options = new() { Normalize = false };
+            PasswordHasher hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
             string hash = hasher.Hash(Password);
             Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
             Assert.IsTrue(hasher.Verify(hash, Password));
 
-            hasher.Normalize = true;
+            options.Normalize = true;
+            hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
             Assert.IsTrue(hasher.RequiresRehash(hash, Password));
 
             hash = hasher.Rehash(Password);

@@ -9,7 +9,7 @@ using System.Text;
 namespace Singulink.Cryptography
 {
     /// <summary>
-    /// Provides upgradable password hashing functionality. Methods are thread-safe as long as the hasher settings are not being modified.
+    /// Provides upgradable password hashing functionality. All operations are thread-safe.
     /// </summary>
     public sealed class PasswordHasher
     {
@@ -19,8 +19,6 @@ namespace Singulink.Cryptography
 
         private readonly Dictionary<string, PasswordHashAlgorithm> _algorithmLookup = new();
         private readonly Dictionary<int, HashEncryptionParameters> _encryptionLookup = new();
-
-        private int _saltSize = 16;
 
         /// <summary>
         /// Gets the main password hashing algorithm.
@@ -38,23 +36,14 @@ namespace Singulink.Cryptography
         public HashEncryptionParameters? EncryptionParameters { get; }
 
         /// <summary>
-        /// Gets or sets the size of the salt that should be generated in bytes. Default value is 16.
+        /// Gets the size of the salt that should be generated in bytes.
         /// </summary>
-        public int SaltSize
-        {
-            get => _saltSize;
-            set {
-                if (value < 8 || value > 32)
-                    throw new ArgumentOutOfRangeException(nameof(value), "Salt size must be between 8 and 32 bytes.");
-
-                _saltSize = value;
-            }
-        }
+        public int SaltSize { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to perform RFC 8265 normalization of the password when generating UTF8 password bytes. Default is true.
+        /// Gets a value indicating whether to perform RFC 8265 normalization of the password when generating UTF8 password bytes.
         /// </summary>
-        public bool Normalize { get; set; } = true;
+        public bool Normalize { get; }
 
         /// <summary>
         /// Gets all the hash algorithms that the password hasher can read.
@@ -71,8 +60,8 @@ namespace Singulink.Cryptography
         /// </summary>
         /// <param name="algorithm">The password hashing algorithm.</param>
         /// <param name="iterations">The number of hashing iterations to perform.</param>
-        /// <param name="encryptionParameters">The optional parameters for additional hash encryption that should be applied to the password hash.</param>
-        public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, HashEncryptionParameters? encryptionParameters = null)
+        /// <param name="options">Any additional options that should be applied to the password hashesr.</param>
+        public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, PasswordHasherOptions? options = null)
         {
             #pragma warning disable CS0618 // Type or member is obsolete
 
@@ -85,45 +74,32 @@ namespace Singulink.Cryptography
                 throw new ArgumentOutOfRangeException(nameof(iterations));
 
             Algorithm = algorithm;
+            _algorithmLookup.Add(algorithm.Id, algorithm);
             Iterations = iterations;
 
-            if (encryptionParameters != null) {
-                EncryptionParameters = encryptionParameters;
-                _encryptionLookup.Add(encryptionParameters.Id, encryptionParameters);
+            if (options == null) {
+                SaltSize = PasswordHasherOptions.DefaultSaltSize;
+                Normalize = PasswordHasherOptions.DefaultNormalize;
             }
+            else {
+                SaltSize = options.SaltSize;
+                Normalize = options.Normalize;
 
-            _algorithmLookup.Add(algorithm.Id, algorithm);
-        }
+                if (options.EncryptionParameters is { } ep) {
+                    EncryptionParameters = ep;
+                    _encryptionLookup.Add(ep.Id, ep);
+                }
 
-        /// <summary>
-        /// Adds the given algorithm to the list of legacy algorithms that the password hasher can read.
-        /// </summary>
-        public void AddLegacyHashAlgorithms(params PasswordHashAlgorithm[] algorithms)
-        {
-            if (algorithms.Select(a => a.Id).Distinct().Count() != algorithms.Length)
-                throw new ArgumentException("Algorithms must all have unique IDs.", nameof(algorithms));
+                foreach (var a in options.LegacyHashAlgorithms) {
+                    if (!_algorithmLookup.TryAdd(a.Id, a))
+                        throw new ArgumentException("Hash algorithms must all have unique IDs.", nameof(options));
+                }
 
-            if (Array.Find(algorithms, a => _algorithmLookup.ContainsKey(a.Id)) is { } duplicate)
-                throw new ArgumentException($"An algorithm with ID '{duplicate.Id}' has already been added to the hasher.", nameof(algorithms));
-
-            foreach (var a in algorithms)
-                _algorithmLookup.Add(a.Id, a);
-        }
-
-        /// <summary>
-        /// Adds a set of legacy hash encryption parameters that the password hasher can read.
-        /// </summary>
-        /// <param name="parameters">The set of encryption parameters with unique IDs.</param>
-        public void AddLegacyEncryptionParameters(params HashEncryptionParameters[] parameters)
-        {
-            if (parameters.Select(p => p.Id).Distinct().Count() != parameters.Length)
-                throw new ArgumentException("Parameters must all have unique IDs.", nameof(parameters));
-
-            if (Array.Find(parameters, p => _encryptionLookup.ContainsKey(p.Id)) is { } duplicate)
-                throw new ArgumentException($"A parameter with ID '{duplicate.Id}' has already been added to the hasher.", nameof(parameters));
-
-            foreach (var p in parameters)
-                _encryptionLookup.Add(p.Id, p);
+                foreach (var p in options.LegacyEncryptionParameters) {
+                    if (!_encryptionLookup.TryAdd(p.Id, p))
+                        throw new ArgumentException("Encryption parameters must all have unique IDs.", nameof(options));
+                }
+            }
         }
 
         /// <summary>
@@ -266,7 +242,7 @@ namespace Singulink.Cryptography
         {
             Debug.Assert(data.Length > 0, "data cannot be empty");
 
-            byte[] salt = new byte[_saltSize];
+            byte[] salt = new byte[SaltSize];
             CryptoRandom.GetBytes(salt);
 
             byte[] hashBytes = Algorithm.Hash(data, salt, iterations);
