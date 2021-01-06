@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace Singulink.Cryptography
@@ -8,6 +9,11 @@ namespace Singulink.Cryptography
     /// </summary>
     public abstract class PasswordHashAlgorithm
     {
+        /// <summary>
+        /// The set of reserved characters that cannot be used in the algorithm ID.
+        /// </summary>
+        public const string ReservedIdCharacters = " ~!@#$%^";
+
         /// <summary>
         /// Gets the SHA256 password hash algorith that is iterated using PBKDF2. This is only included for upgrading legacy hashes - using it as the primary
         /// hash algorithm will throw an exception.
@@ -31,9 +37,12 @@ namespace Singulink.Cryptography
         public static PasswordHashAlgorithm SHA512 { get; } = new Pbkdf2PasswordHashAlgorithm("SHA512", HashAlgorithmName.SHA512, 64);
 
         /// <summary>
-        /// Gets the hash algorithm identifier that is included in the output hash string to identify the algorithm.
+        /// Gets the hash algorithm ID that is included in the output hash string to identify the algorithm.
         /// </summary>
-        public string AlgorithmId { get; }
+        /// <remarks>
+        /// <para>The algorithm ID cannot contain spaces or any of the following reserved characters: <c>~!@#$%^</c>.</para>
+        /// </remarks>
+        public string Id { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PasswordHashAlgorithm"/> class.
@@ -41,7 +50,13 @@ namespace Singulink.Cryptography
         /// <param name="algorithmId">Hash algorithm identifier that is included in the output hash string to identify the algorithm.</param>
         protected PasswordHashAlgorithm(string algorithmId)
         {
-            AlgorithmId = algorithmId;
+            if (algorithmId.Length == 0)
+                throw new ArgumentException("Algorithm ID cannot be empty.", nameof(algorithmId));
+
+            if (ReservedIdCharacters.Any(c => algorithmId.Contains(c, StringComparison.Ordinal)))
+                throw new ArgumentException("Algorithm ID contains invalid characters.", nameof(algorithmId));
+
+            Id = algorithmId;
         }
 
         /// <summary>
