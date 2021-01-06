@@ -42,7 +42,7 @@ New features added in version 2 include:
 - Added password normalization support (enabled by default)
 
 API changes:
-- Legacy hash algorithms are no longer passed into the `PasswordHasher` constructor - use the `AddLegacyHashAlgorithms()` method instead.
+- Legacy hash algorithms are no longer passed into the `PasswordHasher` constructor - use `PasswordHasherOptions` to add legacy algorithms and pass that into the constructor instead.
 - `RequiresHashChainUpgrade()` has been renamed to `RequiresUpdate`.
 - `UpgradeHashChain()` has been renamed to `Update`.
 - `RequiresRehash()` requires an additional `password` parameter now.
