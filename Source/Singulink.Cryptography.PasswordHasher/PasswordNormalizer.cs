@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Text;
-using System.Unicode;
+using Singulink.Cryptography.Unicode;
 
 namespace Singulink.Cryptography
 {
@@ -10,6 +14,37 @@ namespace Singulink.Cryptography
     /// </summary>
     public static class PasswordNormalizer
     {
+        private static readonly (int Start, int End)[] _defaultIgnorableRanges;
+        private static readonly (int Start, int End)[] _exceptionsAllowRanges;
+        private static readonly (int Start, int End)[] _exceptionsDisallowRanges;
+        private static readonly (int Start, int End)[] _oldHangulJamoRanges;
+
+        [SuppressMessage("Performance", "CA1810:Initialize reference type static fields inline", Justification = "Not performance sensitive")]
+        static PasswordNormalizer()
+        {
+            const string PValidExceptionValue = "PVALID";
+
+            var assembly = typeof(PasswordNormalizer).Assembly;
+            string prefix = typeof(UnicodeData).Namespace! + ".Data.";
+
+            var defaultIgnorableData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "Default_Ignorable_DerivedProperty.txt")!);
+            _defaultIgnorableRanges = defaultIgnorableData.Items.Select(x => (x.Start, x.End)).ToArray();
+
+            // PVALID exceptions are added to the allow list, everything else (including context-required items) is added to disallow list
+
+            var exceptionData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "RFC5892_Exceptions_FCategory.txt")!);
+            _exceptionsAllowRanges = exceptionData.Items.Where(x => x.Value == PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
+            _exceptionsDisallowRanges = exceptionData.Items.Where(x => x.Value != PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
+
+            var oldHangulJamoData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "RFC5892_OldHangulJamo_ICategory.txt")!);
+            _oldHangulJamoRanges = defaultIgnorableData.Items.Select(x => (x.Start, x.End)).ToArray();
+
+            Debug.Assert(_defaultIgnorableRanges.Length > 0, "unicode data not loaded properly");
+            Debug.Assert(_exceptionsAllowRanges.Length > 0, "unicode data not loaded properly");
+            Debug.Assert(_exceptionsDisallowRanges.Length > 0, "unicode data not loaded properly");
+            Debug.Assert(_oldHangulJamoRanges.Length > 0, "unicode data not loaded properly");
+        }
+
         /// <summary>
         /// Normalizes the given password.
         /// </summary>
@@ -92,191 +127,59 @@ namespace Singulink.Cryptography
             //    characters U+200D ZERO WIDTH JOINER and U+200C ZERO WIDTH NON-JOINER, which have a derived property value of CONTEXTJ.  See Appendix A of
             //    [RFC5892] for more information.
 
-            // Note: IsControlLCategory() already handles disallowing JoinControl characters.
-
-            // TODO: add contextual rules for the above.
+            // TODO: add contextual rules for the above to allow more characters.
 
             for (int i = 0; i < s.Length; i += char.IsSurrogatePair(s, i) ? 2 : 1) {
                 int cp = char.ConvertToUtf32(s, i);
 
-                if (IsPValidException(cp))
+                if (_exceptionsAllowRanges.Contains(cp))
                     continue;
 
-                if (IsDisallowedException(cp) || IsOldHangulJamoICategory(cp) || IsIgnorablePropertiesMCategory(cp))
+                if (_exceptionsDisallowRanges.Contains(cp) || _oldHangulJamoRanges.Contains(cp))
                     return false;
 
                 var uc = CharUnicodeInfo.GetUnicodeCategory(cp);
 
-                if (IsControlLCategory(uc) || IsUnassignedCategory(uc))
+                // Control characters and unassigned characters is covered by the category below + FormC normalization
+                // JoinControl is a subcategory of Control so that is handled as disallowed as well.
+
+                if (IsIgnorablePropertiesMCategory(cp, uc))
                     return false;
             }
 
             return true;
         }
 
-        private static bool IsOldHangulJamoICategory(int codePoint)
-        {
-            // http://www.unicode.org/Public/UCD/latest/ucd/HangulSyllableType.txt
-            // # Hangul_Syllable_Type=Leading_Jamo
-
-            // 1100..115F    ; L # Lo  [96] HANGUL CHOSEONG KIYEOK..HANGUL CHOSEONG FILLER
-            // A960..A97C    ; L # Lo  [29] HANGUL CHOSEONG TIKEUT-MIEUM..HANGUL CHOSEONG SSANGYEORINHIEUH
-
-            // # Total code points: 125
-
-            // # ================================================
-
-            // # Hangul_Syllable_Type=Vowel_Jamo
-
-            // 1160..11A7    ; V # Lo  [72] HANGUL JUNGSEONG FILLER..HANGUL JUNGSEONG O-YAE
-            // D7B0..D7C6    ; V # Lo  [23] HANGUL JUNGSEONG O-YEO..HANGUL JUNGSEONG ARAEA-E
-
-            // # Total code points: 95
-
-            // # ================================================
-
-            // # Hangul_Syllable_Type=Trailing_Jamo
-
-            // 11A8..11FF    ; T # Lo  [88] HANGUL JONGSEONG KIYEOK..HANGUL JONGSEONG SSANGNIEUN
-            // D7CB..D7FB    ; T # Lo  [49] HANGUL JONGSEONG NIEUN-RIEUL..HANGUL JONGSEONG PHIEUPH-THIEUTH
-
-            // # Total code points: 137
-
-            return codePoint is (>= 0x1100 and <= 0x115F)
-                             or (>= 0xA960 and <= 0xA97C)
-                             or (>= 0x1160 and <= 0x11A7)
-                             or (>= 0xD7B0 and <= 0xD7C6)
-                             or (>= 0x11A8 and <= 0x11FF)
-                             or (>= 0xD7CB and <= 0xD7FB);
-        }
-
-        private static bool IsControlLCategory(UnicodeCategory category) => category == UnicodeCategory.Control;
-
-        private static bool IsIgnorablePropertiesMCategory(int codePoint)
+        private static bool IsIgnorablePropertiesMCategory(int codePoint, UnicodeCategory category)
         {
             // M: Default_Ignorable_Code_Point(cp) = True or Noncharacter_Code_Point(cp) = True
 
-            var charProps = UnicodeInfo.GetCharInfo(codePoint).ContributoryProperties;
+            return _defaultIgnorableRanges.Contains(codePoint) || IsNonCharacterCodePoint(category);
 
-            return (charProps & ContributoryProperties.NonCharacterCodePoint) != 0 ||
-                   (charProps & ContributoryProperties.OtherDefaultIgnorableCodePoint) != 0;
+            static bool IsNonCharacterCodePoint(UnicodeCategory category)
+            {
+                // From https://unicode.org/reports/tr44/
+
+                switch (category) {
+                    case UnicodeCategory.OtherNotAssigned:
+                    case UnicodeCategory.Control:
+                    case UnicodeCategory.PrivateUse:
+                    case UnicodeCategory.Surrogate:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
         }
 
-        private static bool IsUnassignedCategory(UnicodeCategory category) => category == UnicodeCategory.OtherNotAssigned;
-
-        private static bool IsPValidException(int codePoint)
+        private static bool Contains(this IEnumerable<(int Start, int End)> source, int codePoint)
         {
-            // RFC 5892 Section 2.6 (Exceptions)
-
-            // PVALID -- Would otherwise have been DISALLOWED
-
-            // 00DF; PVALID     # LATIN SMALL LETTER SHARP S
-            // 03C2; PVALID     # GREEK SMALL LETTER FINAL SIGMA
-            // 06FD; PVALID     # ARABIC SIGN SINDHI AMPERSAND
-            // 06FE; PVALID     # ARABIC SIGN SINDHI POSTPOSITION MEN
-            // 0F0B; PVALID     # TIBETAN MARK INTERSYLLABIC TSHEG
-            // 3007; PVALID     # IDEOGRAPHIC NUMBER ZERO
-
-            switch (codePoint) {
-                case 0x00DF:
-                case 0x03C2:
-                case 0x06FD:
-                case 0x06FE:
-                case 0x0F0B:
-                case 0x3007:
+            foreach ((int start, int end) in source) {
+                if (codePoint >= start && codePoint <= end)
                     return true;
-                default:
-                    return false;
             }
 
-            // Ignore these, context required:
-
-            // CONTEXTO -- Would otherwise have been DISALLOWED
-
-            // 00B7; CONTEXTO   # MIDDLE DOT
-            // 0375; CONTEXTO   # GREEK LOWER NUMERAL SIGN (KERAIA)
-            // 05F3; CONTEXTO   # HEBREW PUNCTUATION GERESH
-            // 05F4; CONTEXTO   # HEBREW PUNCTUATION GERSHAYIM
-            // 30FB; CONTEXTO   # KATAKANA MIDDLE DOT
-        }
-
-        private static bool IsDisallowedException(int codePoint)
-        {
-            // Disallow any chars that need context
-
-            // RFC 5892 Section 2.6 (Exceptions)
-
-            // CONTEXTO -- Would otherwise have been PVALID
-
-            // 0660; CONTEXTO   # ARABIC-INDIC DIGIT ZERO
-            // 0661; CONTEXTO   # ARABIC-INDIC DIGIT ONE
-            // 0662; CONTEXTO   # ARABIC-INDIC DIGIT TWO
-            // 0663; CONTEXTO   # ARABIC-INDIC DIGIT THREE
-            // 0664; CONTEXTO   # ARABIC-INDIC DIGIT FOUR
-            // 0665; CONTEXTO   # ARABIC-INDIC DIGIT FIVE
-            // 0666; CONTEXTO   # ARABIC-INDIC DIGIT SIX
-            // 0667; CONTEXTO   # ARABIC-INDIC DIGIT SEVEN
-            // 0668; CONTEXTO   # ARABIC-INDIC DIGIT EIGHT
-            // 0669; CONTEXTO   # ARABIC-INDIC DIGIT NINE
-            // 06F0; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT ZERO
-            // 06F1; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT ONE
-            // 06F2; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT TWO
-            // 06F3; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT THREE
-            // 06F4; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT FOUR
-            // 06F5; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT FIVE
-            // 06F6; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT SIX
-            // 06F7; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT SEVEN
-            // 06F8; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT EIGHT
-            // 06F9; CONTEXTO   # EXTENDED ARABIC-INDIC DIGIT NINE
-
-            // DISALLOWED -- Would otherwise have been PVALID
-
-            // 0640; DISALLOWED # ARABIC TATWEEL
-            // 07FA; DISALLOWED # NKO LAJANYALAN
-            // 302E; DISALLOWED # HANGUL SINGLE DOT TONE MARK
-            // 302F; DISALLOWED # HANGUL DOUBLE DOT TONE MARK
-            // 3031; DISALLOWED # VERTICAL KANA REPEAT MARK
-            // 3032; DISALLOWED # VERTICAL KANA REPEAT WITH VOICED SOUND MARK
-            // 3033; DISALLOWED # VERTICAL KANA REPEAT MARK UPPER HALF
-            // 3034; DISALLOWED # VERTICAL KANA REPEAT WITH VOICED SOUND MARK UPPER HA
-            // 3035; DISALLOWED # VERTICAL KANA REPEAT MARK LOWER HALF
-            // 303B; DISALLOWED # VERTICAL IDEOGRAPHIC ITERATION MARK
-
-            switch (codePoint) {
-                case 0x0660:
-                case 0x0661:
-                case 0x0662:
-                case 0x0663:
-                case 0x0664:
-                case 0x0665:
-                case 0x0666:
-                case 0x0667:
-                case 0x0668:
-                case 0x0669:
-                case 0x06F0:
-                case 0x06F1:
-                case 0x06F2:
-                case 0x06F3:
-                case 0x06F4:
-                case 0x06F5:
-                case 0x06F6:
-                case 0x06F7:
-                case 0x06F8:
-                case 0x06F9:
-                case 0x0640:
-                case 0x07FA:
-                case 0x302E:
-                case 0x302F:
-                case 0x3031:
-                case 0x3032:
-                case 0x3033:
-                case 0x3034:
-                case 0x3035:
-                case 0x303B:
-                    return true;
-                default:
-                    return false;
-            }
+            return false;
         }
 
         #endregion

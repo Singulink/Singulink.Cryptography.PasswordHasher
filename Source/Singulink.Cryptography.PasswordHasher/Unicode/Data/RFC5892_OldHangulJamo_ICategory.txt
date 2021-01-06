@@ -1,0 +1,25 @@
+﻿# http://www.unicode.org/Public/UCD/latest/ucd/HangulSyllableType.txt
+# Hangul_Syllable_Type=Leading_Jamo
+
+1100..115F    ; L # Lo  [96] HANGUL CHOSEONG KIYEOK..HANGUL CHOSEONG FILLER
+A960..A97C    ; L # Lo  [29] HANGUL CHOSEONG TIKEUT-MIEUM..HANGUL CHOSEONG SSANGYEORINHIEUH
+
+# Total code points: 125
+
+# ================================================
+
+# Hangul_Syllable_Type=Vowel_Jamo
+
+1160..11A7    ; V # Lo  [72] HANGUL JUNGSEONG FILLER..HANGUL JUNGSEONG O-YAE
+D7B0..D7C6    ; V # Lo  [23] HANGUL JUNGSEONG O-YEO..HANGUL JUNGSEONG ARAEA-E
+
+# Total code points: 95
+
+# ================================================
+
+# Hangul_Syllable_Type=Trailing_Jamo
+
+11A8..11FF    ; T # Lo  [88] HANGUL JONGSEONG KIYEOK..HANGUL JONGSEONG SSANGNIEUN
+D7CB..D7FB    ; T # Lo  [49] HANGUL JONGSEONG NIEUN-RIEUL..HANGUL JONGSEONG PHIEUPH-THIEUTH
+
+# Total code points: 137
