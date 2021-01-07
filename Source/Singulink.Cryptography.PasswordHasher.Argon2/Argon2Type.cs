@@ -10,18 +10,18 @@ namespace Singulink.Cryptography
     public enum Argon2Type
     {
         /// <summary>
-        /// Specifies that the Argon2i algorithm will be used.
-        /// </summary>
-        Argon2i,
-
-        /// <summary>
         /// Specifies that the Argon2d algorithm will be used.
         /// </summary>
-        Argon2d,
+        Argon2d = 0,
+
+        /// <summary>
+        /// Specifies that the Argon2i algorithm will be used.
+        /// </summary>
+        Argon2i = 1,
 
         /// <summary>
         /// Specifies that the Argon2id algorithm will be used.
         /// </summary>
-        Argon2id,
+        Argon2id = 2,
     }
 }

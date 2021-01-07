@@ -5,18 +5,13 @@ using System.IO;
 
 namespace Singulink.Cryptography.Unicode
 {
-    internal sealed class UnicodeData
+    internal static class UnicodeData
     {
-        private readonly List<(int Start, int End, string Value)> _items = new();
         private static readonly char[] ItemSeparators = new char[] { ';', ' ' };
 
-        public IReadOnlyList<(int Start, int End, string Value)> Items => _items;
-
-        private UnicodeData() { }
-
-        public static UnicodeData Load(Stream stream)
+        public static List<(int Start, int End, string Value)> Load(Stream stream)
         {
-            var data = new UnicodeData();
+            var data = new List<(int Start, int End, string Value)>();
             using var reader = new StreamReader(stream);
 
             int lineNumber = 1;
@@ -43,7 +38,7 @@ namespace Singulink.Cryptography.Unicode
                     else
                         throw new FormatException($"Invalid code point range on line {lineNumber}. Data: {line}");
 
-                    data._items.Add((start, end, items[1]));
+                    data.Add((start, end, items[1]));
                 }
 
                 lineNumber++;

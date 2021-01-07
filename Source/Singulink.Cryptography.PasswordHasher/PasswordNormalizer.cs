@@ -28,16 +28,16 @@ namespace Singulink.Cryptography
             string prefix = typeof(UnicodeData).Namespace! + ".Data.";
 
             var defaultIgnorableData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "Default_Ignorable_DerivedProperty.txt")!);
-            _defaultIgnorableRanges = defaultIgnorableData.Items.Select(x => (x.Start, x.End)).ToArray();
+            _defaultIgnorableRanges = defaultIgnorableData.Select(x => (x.Start, x.End)).ToArray();
 
             // PVALID exceptions are added to the allow list, everything else (including context-required items) is added to disallow list
 
             var exceptionData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "RFC5892_Exceptions_FCategory.txt")!);
-            _exceptionsAllowRanges = exceptionData.Items.Where(x => x.Value == PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
-            _exceptionsDisallowRanges = exceptionData.Items.Where(x => x.Value != PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
+            _exceptionsAllowRanges = exceptionData.Where(x => x.Value == PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
+            _exceptionsDisallowRanges = exceptionData.Where(x => x.Value != PValidExceptionValue).Select(x => (x.Start, x.End)).ToArray();
 
             var oldHangulJamoData = UnicodeData.Load(assembly.GetManifestResourceStream(prefix + "RFC5892_OldHangulJamo_ICategory.txt")!);
-            _oldHangulJamoRanges = defaultIgnorableData.Items.Select(x => (x.Start, x.End)).ToArray();
+            _oldHangulJamoRanges = defaultIgnorableData.Select(x => (x.Start, x.End)).ToArray();
 
             Debug.Assert(_defaultIgnorableRanges.Length > 0, "unicode data not loaded properly");
             Debug.Assert(_exceptionsAllowRanges.Length > 0, "unicode data not loaded properly");

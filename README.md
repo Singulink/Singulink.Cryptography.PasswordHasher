@@ -105,11 +105,11 @@ Hash (Base64): eqko5aiXBc+1BIBMKNi3VIhK9iPPW/dX85FcsVd1ITs= (Base64 encoded)
 **Example 2:**
 
 ```
-#123 Argon2id-4P-512MB:5:1KmmrJ5fTKXOUWqlYCD7zQ== Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybtc8U93P1Kr8gvIK18HtkboQYdnpFShbnEVCnjRXiF076kMxf4FtX4+kA+wUHVuzR
+#123 Argon2idV19-128-4P-512MB:5:1KmmrJ5fTKXOUWqlYCD7zQ== Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybtc8U93P1Kr8gvIK18HtkboQYdnpFShbnEVCnjRXiF076kMxf4FtX4+kA+wUHVuzR
 
 Normalization: None
 Hash Encryption: Using parameters with ID# 123
-Hash Algorithm: Argon2id (degree of parallelism: 4, memory: 512MB)
+Hash Algorithm: Argon2id V19[1.3] (128bit hash, degree of parallelism: 4, memory: 512MB)
 Iterations: 5
 Salt (Base64): 1KmmrJ5fTKXOUWqlYCD7zQ==
 Hash (Base64): Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybtc8U93P1Kr8gvIK18HtkboQYdnpFShbnEVCnjRXiF076kMxf4FtX4+kA+wUHVuzR
@@ -269,8 +269,8 @@ database.SaveChanges();
 After adding the `Singulink.Cryptography.PasswordHasher.Argon2` package, you can do the following:
 
 ```cs
-// Create Argon2id with degree of paralellism: 4, memory: 512MB and 256-bit output.
-var argon2Algorithm = new Argon2HashAlgorithm(Argon2Type.Argon2id, 4, 512, 256);
+// Create Argon2id v19/1.3 with paralellism: 4, memory: 512MB and 256-bit output.
+var argon2Algorithm = new Argon2HashAlgorithm(Argon2Type.Argon2id, Argon2Version.V19, 4, 512, 256);
 
 // Create a hasher that uses the above algorithm with 5 iterations
 var hasher = new PasswordHasher(argon2Algorithm, 5);
@@ -279,3 +279,5 @@ string hash = hasher.Hash(password);
 ```
 
 All the features of `PasswordHasher` work as you would expect with Argon2. It is noteworthy to add that all the Argon2 parameters must stay the same for incremental iteration chaining to be utilized when `Update()` is called. If any of the parameters change, it is considered a new algorithm and the full number of iterations will be chained to the previous hash. Since every set of parameters is considered a different algorithm, make sure you add the `Argon2HashAlgorithm` instance with the old parameters to `PasswordHasherOptions.LegacyHashAlgorithms` so the hasher knows how to read those hashes.
+
+Argon2 support is provided via a dependency to the excellent [Isopoh.Cryptography.Argon2](https://github.com/mheyman/Isopoh.Cryptography.Argon2) package.
