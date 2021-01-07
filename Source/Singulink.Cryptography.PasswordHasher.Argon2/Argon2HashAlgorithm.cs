@@ -69,7 +69,7 @@ namespace Singulink.Cryptography
             if (parallelism < 1)
                 throw new ArgumentOutOfRangeException(nameof(parallelism));
 
-            if (memorySize < 1 || memorySize > 4194303)
+            if (memorySize * 1024 < parallelism * 8 || memorySize > 4194303)
                 throw new ArgumentOutOfRangeException(nameof(memorySize));
 
             if (hashLength < 4)
