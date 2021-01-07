@@ -156,6 +156,8 @@ var options = new PasswordHasherOptions {
     Normalize = false,
     SaltSize = 20,
 };
+
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 10000, options);
 ```
 
 ### Updating hash algorithm or iterations
