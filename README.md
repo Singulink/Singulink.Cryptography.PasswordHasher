@@ -10,7 +10,7 @@ Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) 
 
 An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included out-of-the-box, but other algorithms can be easily plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class which only requires overriding an `Encrypt`, `Decrypt` and `IsValidKeySize` method. Master keys can be updated or rotated with minimal effort and should be generated from a completely random source.
 
-**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to Normalization Form C as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
+**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to `Normalization Form C` as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
 
 ### About Singulink
 
@@ -54,10 +54,10 @@ API changes:
 To create a `PasswordHasher` you use the following constructor:
 
 ```cs
-public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, params PasswordHashAlgorithm[] legacyAlgorithms)
+public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, PasswordHasherOptions? options);
 ```
 
-The `algorithm` and `iterations` parameters specify what the main algorithm and total number of iterations should be. The `legacyAlgorithms` parameter specifies any additional algorithms that the hasher should be capable of hashing, i.e. any older hash algorithms that were upgraded to the main algorithm but which may still be present in the database until upgraded hash chains are rehashed.
+The `algorithm` and `iterations` parameters specify what the main algorithm and total number of iterations should be. The `options` parameter specifies any additional options, i.e. normalization, salt size, or any legacy algorithms and encryption parameters that the hasher must still be capable of reading.
 
 `PasswordHasher` is thread-safe so instances can be safely shared between threads. It contains the following primary methods:
 
@@ -109,7 +109,7 @@ Hash (Base64): eqko5aiXBc+1BIBMKNi3VIhK9iPPW/dX85FcsVd1ITs= (Base64 encoded)
 
 Normalization: None
 Hash Encryption: Using parameters with ID# 123
-Hash Algorithm: Argon2id V19[1.3] (128bit hash, degree of parallelism: 4, memory: 512MB)
+Hash Algorithm: Argon2id V19[1.3] (128bit hash, parallelism: 4, memory: 512MB)
 Iterations: 5
 Salt (Base64): 1KmmrJ5fTKXOUWqlYCD7zQ==
 Hash (Base64): Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybtc8U93P1Kr8gvIK18HtkboQYdnpFShbnEVCnjRXiF076kMxf4FtX4+kA+wUHVuzR
@@ -271,7 +271,7 @@ database.SaveChanges();
 After adding the `Singulink.Cryptography.PasswordHasher.Argon2` package, you can do the following:
 
 ```cs
-// Create Argon2id v19/1.3 with paralellism: 4, memory: 512MB and 256-bit output.
+// Create Argon2id v19/1.3 with parallelism: 4, memory: 512MB and 256-bit output.
 var argon2Algorithm = new Argon2HashAlgorithm(Argon2Type.Argon2id, Argon2Version.V19, 4, 512, 256);
 
 // Create a hasher that uses the above algorithm with 5 iterations
