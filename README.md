@@ -20,7 +20,7 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ## Installation
 
-The package is available on NuGet - simply install the `Singulink.Cryptography.PasswordHasher` package. If Argon2 support is needed then also install the `Singulink.Cryptography.PasswordHasher.Argon2` package.
+The package is available on NuGet - simply install the `Singulink.Cryptography.PasswordHasher` package. To add Argon2 support install the `Singulink.Cryptography.PasswordHasher.Argon2` package.
 
 **Supported Runtimes**: Anywhere .NET Standard 2.1+ is supported, including:
 - .NET Core 3.0+
@@ -99,7 +99,7 @@ Hash Encryption: None
 Hash Algorithm: SHA256 (PBKDF2)
 Iterations: 1000
 Salt (Base64): FV6nVAAqg1exolA+9fY2Nw==
-Hash (Base64): eqko5aiXBc+1BIBMKNi3VIhK9iPPW/dX85FcsVd1ITs= (Base64 encoded)
+Hash (Base64): eqko5aiXBc+1BIBMKNi3VIhK9iPPW/dX85FcsVd1ITs=
 ```
 
 **Example 2:**
