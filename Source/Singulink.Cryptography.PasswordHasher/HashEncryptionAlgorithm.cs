@@ -12,7 +12,7 @@ namespace Singulink.Cryptography
         private static readonly RNGCryptoServiceProvider CryptoRandom = new RNGCryptoServiceProvider();
 
         /// <summary>
-        /// Gets the AES password hash encyption algorithm that uses a 128-bit master key.
+        /// Gets the AES password hash encyption algorithm that uses a 128-bit master key. A randomly generated 128-bit IV is prepended to the output.
         /// </summary>
         public static HashEncryptionAlgorithm AES128 { get; } = new Aes128();
 

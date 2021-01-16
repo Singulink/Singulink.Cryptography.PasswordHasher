@@ -30,7 +30,7 @@ The package is available on NuGet - simply install the `Singulink.Cryptography.P
 
 ## API
 
-You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Cryptography.PasswordHasher). All the functionality is exposed via the `PasswordHasher` and `PasswordHashAlgorithm` classes in the `Singulink.Cryptography` namespace.
+You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Cryptography.PasswordHasher). The main functionality is exposed via the `PasswordHasher` class in the `Singulink.Cryptography` namespace.
 
 ## Changes from Version 1.x to 2.x
 
