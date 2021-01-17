@@ -66,7 +66,7 @@ namespace Singulink.Cryptography
             #pragma warning disable CS0618 // Type or member is obsolete
 
             if (algorithm == PasswordHashAlgorithm.SHA1)
-                throw new ArgumentException("SHA1 is not considered safe and is only supported as a legacy algorithm.");
+                throw new ArgumentException("SHA1 is not considered safe and is only supported as a legacy algorithm.", nameof(algorithm));
 
             #pragma warning restore CS0618 // Type or member is obsolete
 
