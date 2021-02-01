@@ -10,7 +10,7 @@ Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) 
 
 An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included out-of-the-box, but other algorithms can be easily plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class which only requires overriding an `Encrypt`, `Decrypt` and `IsValidKeySize` method. Master keys can be updated or rotated with minimal effort and should be generated from a completely random source.
 
-**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues with entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to `Normalization Form C` as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
+**PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues when entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to `Normalization Form C` as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
 
 ### About Singulink
 
@@ -117,7 +117,7 @@ Hash (Base64): Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybt
 
 The hash in example 2 is the result of encrypting the hash algorithm output using the encyption parameters with ID `123`.
 
-If the hash chain was updated at some point (i.e. had additional algorithms or iterations applied to it), then those are added to the list. Each chained algorithm has its own salt value and the output bytes from the previous algorithm is fed into the next one. For example, if we started with SHA256 with 1000 iterations and upgraded to SHA512 with 20,000 iterations, the hash string might look something like this:
+If the hash chain was updated at some point (i.e. had additional algorithms or iterations applied to it), then those are added to the list. Each chained algorithm has its own salt value and the output bytes from the previous algorithm are fed into the next one. For example, if we started with SHA256 with 1000 iterations and upgraded to SHA512 with 20,000 iterations, the hash string might look something like this:
 
 ```
 SHA256:1000:9QTkU8cSJ8xXkUdrx8qQVg== SHA512:20000:dlZfZk6CQstiyUAnZH5L7w== 07qYVKg1yx+AiRP+2oLxv3ozRmJ4tvb/IkgnsCO40LXT8Pm+bXXQnHoqKTQMy7e4IbMbTzOVH7cDqqBZ5RyygA==
