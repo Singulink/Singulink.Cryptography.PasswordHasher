@@ -280,6 +280,6 @@ var hasher = new PasswordHasher(argon2Algorithm, 5);
 string hash = hasher.Hash(password);
 ```
 
-All the features of `PasswordHasher` work as you would expect with Argon2. It is noteworthy to add that all the Argon2 parameters must stay the same for incremental iteration chaining to be utilized when `Update()` is called. If any of the parameters change, it is considered a new algorithm and the full number of iterations will be chained to the previous hash. Since every set of parameters is considered a different algorithm, make sure you add the `Argon2HashAlgorithm` instance with the old parameters to `PasswordHasherOptions.LegacyHashAlgorithms` so the hasher knows how to read those hashes.
+All the features of `PasswordHasher` work as you would expect with Argon2. Note that all the Argon2 parameters must stay the same for incremental iteration chaining to be utilized when `Update()` is called. If any of the parameters change, it is considered a new algorithm and the full number of iterations will be chained to the previous hash. Since every set of parameters is considered a different algorithm, make sure you add the `Argon2HashAlgorithm` instance with the old parameters to `PasswordHasherOptions.LegacyHashAlgorithms` so the hasher knows how to read those hashes.
 
 Argon2 support is provided via a dependency to the excellent [Isopoh.Cryptography.Argon2](https://github.com/mheyman/Isopoh.Cryptography.Argon2) package.
