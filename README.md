@@ -73,11 +73,11 @@ string? Update(string hash);
 The first two methods should be self-explanatory: `Hash` produces a password hash, where-as `Verify` is used to verify a hash/password combo.
 
 The last four methods are where it gets interesting:
-- `RequiresRehash`: Returns a value indicating whether a hash should be regenerated from the known password. Returns true if the hash contains chained hashes, the main algorithm / number of iterations does not match, the main encryption parameters do not match, or normalization settings do not match.
+- `RequiresRehash`: Returns a value indicating whether a hash string should be regenerated from the known password. Returns true if the hash string contains chained hashes, the main algorithm / number of iterations does not match, the main encryption parameters do not match, or normalization settings do not match.
 - `Rehash`: Safely rehashes an existing password by falling back to previous normalization settings if normalization fails with current settings.
-- `RequiresUpdate`: Returns a value indicating whether the hash needs to be updated, meaning the main encryption parameters do not match or the hash chain needs to be updated so that it uses the main algorithm and total required number of iterations.
-- `Update`: Gets an updated hash that uses the main encryption parameters and main hash algorithm with the total number of required iterations without knowing the password, or returns `null` if hash does not require an update.
-  Changing hash algorithms or adding iterations without knowing the password is achieved by hash chaining. If the hash algorithm or number of iterations has changed then the resulting hash will return `true` when passed into the `RequiresRehash()` method, which should be tested on successful user login so that a new hash without chaining can be generated with the `Rehash()` method.
+- `RequiresUpdate`: Returns a value indicating whether the hash string needs to be updated, meaning the main encryption parameters do not match or an additional entry needs to be added to the hash chain so that it uses the main algorithm and total required number of iterations.
+- `Update`: Gets an updated hash string that uses the main encryption parameters and main hash algorithm with the total number of required iterations without knowing the password, or returns `null` if the hash string does not require an update.
+  Changing hash algorithms or adding iterations without knowing the password is achieved by hash chaining. If the hash algorithm or number of iterations has changed then the resulting hash string will return `true` when passed into the `RequiresRehash()` method, which should be tested on successful user login so that a new hash string without chaining can be generated with the `Rehash()` method.
 
 ## Hash String Format
 
@@ -115,7 +115,7 @@ Salt (Base64): 1KmmrJ5fTKXOUWqlYCD7zQ==
 Hash (Base64): Nw0DxzZnXhe531IhEoE3ziqRJLxQiqh7Ovcs6H8IZVNqiKHilbhYKAJnBYJIyVybtc8U93P1Kr8gvIK18HtkboQYdnpFShbnEVCnjRXiF076kMxf4FtX4+kA+wUHVuzR
 ```
 
-The hash in example 2 is the result of encrypting the hash algorithm output using the encyption parameters with ID `123`.
+The hash string in example 2 is the result of encrypting the hash algorithm output using the encyption parameters with ID `123`.
 
 If the hash chain was updated at some point (i.e. had additional algorithms or iterations applied to it), then those are added to the list. Each chained algorithm has its own salt value and the output bytes from the previous algorithm are fed into the next one. For example, if we started with SHA256 with 1000 iterations and upgraded to SHA512 with 20,000 iterations, the hash string might look something like this:
 
@@ -183,7 +183,7 @@ foreach (var user in database.GetUsers())
 database.SaveChanges();
 ```
 
-After running the script above, hashes in the database would now be composed of a SHA256 10,000 iteration hash which is chained to a SHA512 20,000 iteration hash. You will then want to rehash chained hashes to eliminate the chaining upon successful authentication using login code similar to the following:
+After running the script above, the hash strings in the database would now be composed of a SHA256 10,000 iteration hash chained to a SHA512 20,000 iteration hash. You will then want to rehash passwords to eliminate the chaining upon successful authentication using login code similar to the following:
 
 ```cs
 // The SHA256 algorithm must still be passed into the LegacyHashAlgorithms property since the chained
@@ -220,7 +220,7 @@ If you don't want to mass-update all the hashes up-front, you can simply skip th
 Adding new hash encryption parameters is done in a similar manner as updating the hash algorithm or number of iterations:
 
 ```cs
-// Set main encryption parameters to ID 10, AES128 algorithm and MasterKey1.
+// Set main encryption parameters to ID 10, AES128 algorithm and MasterKey10.
 // GetMasterKey10() should get the key from somewhere other than the database
 // (i.e. secure storage, config file, hard-coded, etc).
 
