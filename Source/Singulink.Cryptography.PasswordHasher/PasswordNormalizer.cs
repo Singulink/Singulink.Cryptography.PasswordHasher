@@ -140,7 +140,7 @@ namespace Singulink.Cryptography
 
                 var uc = CharUnicodeInfo.GetUnicodeCategory(cp);
 
-                // Control characters and unassigned characters is covered by the category below + FormC normalization
+                // Control characters are covered by the category below and and unassigned characters are covered when doing FormC normalization
                 // JoinControl is a subcategory of Control so that is handled as disallowed as well.
 
                 if (IsIgnorablePropertiesMCategory(cp, uc))
