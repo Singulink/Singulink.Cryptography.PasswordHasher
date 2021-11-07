@@ -6,9 +6,9 @@
 
 **PasswordHasher** greatly simplifies implementing security best practices with upgradable hash algorithm passwords. Hashes are upgradable in the sense that you can easily transition them to a different algorithm or increase the total number of iterations as periodically required in order to maintain the desired level of password security.
 
-Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) is included out-of-the-box. PBKDF2 with SHA1 is also supported but only for reading/upgrading legacy hashes. Other algorithms (i.e. bcrypt, scrypt, etc) can be easily plugged in by adding a custom implementation of the `PasswordHashAlgorithm` class.
+Support for PBKDF2 (SHA256/SHA384/SHA512) and Argon2 (Argon2i/Argon2d/Argon2id) is included out-of-the-box. PBKDF2 with SHA1 is also supported but only for reading/upgrading legacy hashes. Other algorithms (i.e. bcrypt, scrypt, etc) can be plugged in by adding a custom implementation of the `PasswordHashAlgorithm` class.
 
-An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included out-of-the-box, but other algorithms can be easily plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class. Master keys can be updated or rotated with minimal effort and should be generated from a completely random source.
+An additional layer of security can be added by encrypting hashes with a master key that is stored outside of the database so that hashes are not compromised if an attacker gains access to the database. AES128 encryption is included, but other algorithms can be plugged in by adding a custom implementation of the `HashEncryptionAlgorithm` class. Master keys can be updated or rotated with minimal effort and should be generated from a completely random source.
 
 **PasswordHasher** implements RFC 8265 / RFC 7613 PRECIS Framework-compliant password normalization to ensure users don't have any Unicode encoding related issues when entering passwords. All spaces are replaced with standard ASCII spaces, invalid Unicode and control characters are blocked, and passwords are normalized to `Normalization Form C` as per the spec. Normalization can be turned off with a simple boolean property if you don't want normalization or you want to pre-process passwords with your own normalization scheme.
 
@@ -75,7 +75,7 @@ The first two methods should be self-explanatory: `Hash` produces a password has
 The last four methods are where it gets interesting:
 - `RequiresRehash`: Returns a value indicating whether a hash should be regenerated from the known password. Returns true if the hash contains chained hashes, the main algorithm / number of iterations does not match, the main encryption parameters do not match, or normalization settings do not match.
 - `Rehash`: Safely rehashes an existing password by falling back to previous normalization settings if normalization fails with current settings.
-- `RequiresUpdate`: Returns a value indicating whether the hash needs to be updated. Returns true if the hash chain needs to be updated so that it utilizes the main algorithm and total required number of iterations. Also returns true if the main encryption parameters do not match.
+- `RequiresUpdate`: Returns a value indicating whether the hash needs to be updated, meaning the main encryption parameters do not match or the hash chain needs to be updated so that it uses the main algorithm and total required number of iterations.
 - `Update`: Gets an updated hash that uses the main encryption parameters and main hash algorithm with the total number of required iterations without knowing the password, or returns `null` if hash does not require an update.
   Changing hash algorithms or adding iterations without knowing the password is achieved by hash chaining. If the hash algorithm or number of iterations has changed then the resulting hash will return `true` when passed into the `RequiresRehash()` method, which should be tested on successful user login so that a new hash without chaining can be generated with the `Rehash()` method.
 
@@ -166,7 +166,7 @@ Hashes can be mass-updated with more iterations or new agorithms by writing a sc
 
 ```cs
 // Upgrade hashes in the database to SHA512 with 20,000 iterations. The SHA256 algorithm must be 
-// passed into the legacyAlgorithms parameter so the hasher can read the current SHA256 hashes.
+// passed into the LegacyHashAlgorithms property so the hasher can read the current SHA256 hashes.
 
 var options = new PasswordHasherOptions { 
     LegacyHashAlgorithms = { PasswordHashAlgorithm.SHA256 },
@@ -186,13 +186,11 @@ database.SaveChanges();
 After running the script above, hashes in the database would now be composed of a SHA256 10,000 iteration hash which is chained to a SHA512 20,000 iteration hash. You will then want to rehash chained hashes to eliminate the chaining upon successful authentication using login code similar to the following:
 
 ```cs
-// The SHA256 algorithm must still be passed into the legacyAlgorithms parameter as the chained
+// The SHA256 algorithm must still be passed into the LegacyHashAlgorithms property since the chained
 // hashes contain a SHA256 component until they are rehashed.
 
 var options = new PasswordHasherOptions { 
-    LegacyHashAlgorithms = { 
-        PasswordHashAlgorithm.SHA256,
-    },
+    LegacyHashAlgorithms = { PasswordHashAlgorithm.SHA256 },
 };
 
 var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
@@ -219,15 +217,15 @@ If you don't want to mass-update all the hashes up-front, you can simply skip th
 
 ### Adding or updating hash encryption
 
-Adding new hash encryption parameters is done in a similar manner as updating the hash algorithm / iterations:
+Adding new hash encryption parameters is done in a similar manner as updating the hash algorithm or number of iterations:
 
 ```cs
 // Set main encryption parameters to ID 10, AES128 algorithm and MasterKey1.
-// GetMasterKey1() should get the key from somewhere other than the database
+// GetMasterKey10() should get the key from somewhere other than the database
 // (i.e. secure storage, config file, hard-coded, etc).
 
 var options = new PasswordHasherOptions { 
-    EncryptionParameters = new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey1()),
+    EncryptionParameters = new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey10()),
 };
 
 var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
@@ -247,9 +245,9 @@ Updating the master key is done by adding another set of encryption parameters w
 
 ```cs
 var options = new PasswordHasherOptions { 
-    EncryptionParameters = new HashEncryptionParameters(11, HashEncryptionAlgorithm.AES128, GetMasterKey2()),
+    EncryptionParameters = new HashEncryptionParameters(11, HashEncryptionAlgorithm.AES128, GetMasterKey11()),
     LegacyEncryptionParameters = {
-        new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey1()),
+        new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey10()),
     },
 };
 
