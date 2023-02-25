@@ -1,4 +1,4 @@
-# Remove the line below if you want to inherit .editorconfig settings from higher directories
+# Root editor config for all projects in the repo
 root = true
 
 
@@ -8,6 +8,16 @@ root = true
 #### Guidelines ####
 
 guidelines = 160
+
+########### C# Project files ###########
+[*.csproj]
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 2
+indent_style = space
+tab_width = 2
 
 ########### C# files ###########
 [*.cs]
@@ -124,7 +134,7 @@ csharp_new_line_before_else = true
 csharp_new_line_before_finally = true
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_before_members_in_object_initializers = true
-csharp_new_line_before_open_brace = methods,types
+csharp_new_line_before_open_brace = methods,types,control_blocks,events,indexers,local_functions,properties
 csharp_new_line_between_query_expression_clauses = true
 
 # Indentation preferences
@@ -212,6 +222,10 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 
 #### Analyzer diagnostics ####
+
+stylecop.documentation.documentExposedElements = true
+stylecop.documentation.documentInternalElements = false
+stylecop.documentation.documentInterfaces = false
 
 # SA1503: Braces should not be omitted
 dotnet_diagnostic.SA1503.severity = none
@@ -326,3 +340,9 @@ dotnet_diagnostic.SA1205.severity = none
 
 # CA1060: Move pinvokes to native methods class
 dotnet_diagnostic.CA1060.severity = none
+
+# SA1519: Braces should not be omitted from multi-line child statement
+dotnet_diagnostic.SA1519.severity = silent
+
+# SA1214: Readonly fields should appear before non-readonly fields
+dotnet_diagnostic.SA1214.severity = suggestion
