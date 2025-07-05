@@ -7,10 +7,12 @@ namespace Singulink.Cryptography;
 /// </summary>
 public abstract class HashEncryptionAlgorithm
 {
+#if !NET
     private static readonly RNGCryptoServiceProvider CryptoRandom = new();
+#endif
 
     /// <summary>
-    /// Gets the AES password hash encyption algorithm that uses a 128-bit master key. A randomly generated 128-bit IV is prepended to the output.
+    /// Gets the AES password hash encryption algorithm that uses a 128-bit master key. A randomly generated 128-bit IV is prepended to the output.
     /// </summary>
     public static HashEncryptionAlgorithm AES128 { get; } = new Aes128();
 
@@ -44,8 +46,11 @@ public abstract class HashEncryptionAlgorithm
                 throw new ArgumentException("Key is not a valid size for AES encryption.", nameof(key));
 
             byte[] iv = new byte[IvSize];
+#if NET
+            RandomNumberGenerator.Fill(iv);
+#else
             CryptoRandom.GetBytes(iv);
-
+#endif
             ICryptoTransform encryptor = aes.CreateEncryptor(key, iv);
 
             using var memoryStream = new MemoryStream();

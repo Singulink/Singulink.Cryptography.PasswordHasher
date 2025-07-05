@@ -36,23 +36,6 @@ The package is available on NuGet - simply install the `Singulink.Cryptography.P
 
 You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Cryptography.PasswordHasher). The main functionality is exposed via the `PasswordHasher` class in the `Singulink.Cryptography` namespace.
 
-## Changes from Version 1.x to 2.x
-
-Newer versions of **PasswordHasher** are backwards-compatible and thus can always read and verify hashes from previous versions and continue to work as expected. The `RequiresRehash()` method will return `true` if a rehash should be performed because settings have changed (i.e. normalization is now on by default) but old hashes will still continue to verify just fine.
-
-New features added in version 2 include:
-- Added Argon2 support via the `Singulink.Cryptography.PasswordHasher.Argon2` package
-- Added hash encryption support
-- Added password normalization support (enabled by default)
-
-API changes:
-- Legacy hash algorithms are no longer passed into the `PasswordHasher` constructor - use `PasswordHasherOptions` to add legacy algorithms and pass that into the constructor instead.
-- `RequiresHashChainUpgrade()` has been renamed to `RequiresUpdate`.
-- `UpgradeHashChain()` has been renamed to `Update`.
-- `RequiresRehash()` requires an additional `password` parameter now.
-- Rehashing existing passwords should be done with `Rehash()` instead of `Hash()`.
-- Methods that accept passwords in `byte[]` format have been removed in order to properly facilitate normalization functionality.
-
 ## Usage
 
 To create a `PasswordHasher` you use the following constructor:

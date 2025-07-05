@@ -5,8 +5,6 @@
 /// </summary>
 public sealed class PasswordHasherOptions
 {
-    #region Defaults
-
     /// <summary>
     /// The default salt size.
     /// </summary>
@@ -16,8 +14,6 @@ public sealed class PasswordHasherOptions
     /// The default normalization setting.
     /// </summary>
     public const bool DefaultNormalize = true;
-
-    #endregion
 
     private int _saltSize = DefaultSaltSize;
 

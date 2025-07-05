@@ -172,7 +172,7 @@ public static class PasswordNormalizer
         }
     }
 
-    private static bool Contains(this IEnumerable<(int Start, int End)> source, int codePoint)
+    private static bool Contains(this (int Start, int End)[] source, int codePoint)
     {
         foreach ((int start, int end) in source)
         {

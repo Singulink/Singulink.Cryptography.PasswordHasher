@@ -12,7 +12,9 @@ public sealed class PasswordHasher
 {
     private const char Separator = ' ';
 
+#if !NET
     private static readonly RNGCryptoServiceProvider CryptoRandom = new();
+#endif
 
     private readonly Dictionary<string, PasswordHashAlgorithm> _algorithmLookup = new();
     private readonly Dictionary<int, HashEncryptionParameters> _encryptionLookup = new();
@@ -256,7 +258,12 @@ public sealed class PasswordHasher
         Debug.Assert(data.Length > 0, "data cannot be empty");
 
         byte[] salt = new byte[SaltSize];
+
+#if NET
+        RandomNumberGenerator.Fill(salt);
+#else
         CryptoRandom.GetBytes(salt);
+#endif
 
         byte[] hashBytes = Algorithm.Hash(data, salt, iterations);
 

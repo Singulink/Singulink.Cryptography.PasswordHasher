@@ -13,24 +13,24 @@ public abstract class PasswordHashAlgorithm
     public const string ReservedIdCharacters = " ~!@#$%^";
 
     /// <summary>
-    /// Gets the SHA256 password hash algorith that is iterated using PBKDF2. This is only included for upgrading legacy hashes - using it as the primary
+    /// Gets the SHA256 password hash algorithm that is iterated using PBKDF2. This is only included for upgrading legacy hashes - using it as the primary
     /// hash algorithm will throw an exception.
     /// </summary>
     [Obsolete("SHA1 is not considered safe - only use this for upgrading legacy hashes.", false)]
     public static PasswordHashAlgorithm SHA1 { get; } = new Pbkdf2PasswordHashAlgorithm("SHA1", HashAlgorithmName.SHA1, 20);
 
     /// <summary>
-    /// Gets the SHA256 password hash algorith that is iterated using PBKDF2.
+    /// Gets the SHA256 password hash algorithm that is iterated using PBKDF2.
     /// </summary>
     public static PasswordHashAlgorithm SHA256 { get; } = new Pbkdf2PasswordHashAlgorithm("SHA256", HashAlgorithmName.SHA256, 32);
 
     /// <summary>
-    /// Gets the SHA384 password hash algorith that is iterated using PBKDF2.
+    /// Gets the SHA384 password hash algorithm that is iterated using PBKDF2.
     /// </summary>
     public static PasswordHashAlgorithm SHA384 { get; } = new Pbkdf2PasswordHashAlgorithm("SHA384", HashAlgorithmName.SHA384, 48);
 
     /// <summary>
-    /// Gets the SHA512 password hash algorith that is iterated using PBKDF2.
+    /// Gets the SHA512 password hash algorithm that is iterated using PBKDF2.
     /// </summary>
     public static PasswordHashAlgorithm SHA512 { get; } = new Pbkdf2PasswordHashAlgorithm("SHA512", HashAlgorithmName.SHA512, 64);
 
