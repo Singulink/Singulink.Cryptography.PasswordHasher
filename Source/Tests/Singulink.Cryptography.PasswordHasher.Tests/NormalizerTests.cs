@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace Singulink.Cryptography.Tests;
+﻿namespace Singulink.Cryptography.Tests;
 
 [TestClass]
 public class NormalizerTests

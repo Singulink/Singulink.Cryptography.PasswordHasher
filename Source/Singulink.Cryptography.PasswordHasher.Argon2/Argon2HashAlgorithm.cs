@@ -80,6 +80,17 @@ public sealed class Argon2HashAlgorithm : PasswordHashAlgorithm
         HashLength = hashLength;
     }
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="Argon2HashAlgorithm"/> class with the specified parameters.
+    /// </summary>
+    /// <param name="type">The Argon2 algorithm type to use.</param>
+    /// <param name="version">The Argon2 version to use.</param>
+    /// <param name="parallelism">The number of lanes to use while processing the hash.</param>
+    /// <param name="memorySize">The amount of memory (in MB) to use while processing the hash.</param>
+    /// <param name="hashLength">The size of the output hash (in bytes). 16 bytes is recommended for password hashing.</param>
+    public static Argon2HashAlgorithm Create(Argon2Type type, Argon2Version version, int parallelism, int memorySize, int hashLength = 16) =>
+        new(type, version, parallelism, memorySize, hashLength);
+
     /// <inheritdoc/>
     public override byte[] Hash(byte[] password, byte[] salt, int iterations)
     {

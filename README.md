@@ -38,13 +38,7 @@ You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Cryptog
 
 ## Usage
 
-To create a `PasswordHasher` you use the following constructor:
-
-```cs
-public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, PasswordHasherOptions? options);
-```
-
-The `algorithm` and `iterations` parameters specify what the main algorithm and total number of iterations should be. The `options` parameter specifies any additional options, i.e. normalization, salt size, or any legacy algorithms and encryption parameters that the hasher must still be capable of reading.
+To create a `PasswordHasher`, at a minimum you need to specify the main hash algorithm and the total number of iterations to use. There are constructors that take an options object or options builder that you can use to specify addional options such as normalization, encryption parameters, and any legacy algorithms / encryption parameters that the hasher must still be capable of reading.
 
 `PasswordHasher` is thread-safe so instances can be safely shared between threads. It contains the following primary methods:
 
@@ -136,15 +130,13 @@ bool success = hasher.Verify(hash, password); // true
 
 ### Turning normalization on or off or changing salt size
 
-`PasswordHasherOptions` can be used to specify additional options:
+`PasswordHasherOptions` can be configured with additional options:
 
 ```cs
-var options = new PasswordHasherOptions { 
-    Normalize = false,
-    SaltSize = 20,
-};
-
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 10000, options);
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 10000, options => {
+    options.Normalize = false,
+    options.SaltSize = 20,
+});
 ```
 
 ### Updating hash algorithm or iterations
@@ -155,11 +147,9 @@ Hashes can be mass-updated with more iterations or new agorithms by writing a sc
 // Upgrade hashes in the database to SHA512 with 20,000 iterations. The SHA256 algorithm must be 
 // passed into the LegacyHashAlgorithms property so the hasher can read the current SHA256 hashes.
 
-var options = new PasswordHasherOptions { 
-    LegacyHashAlgorithms = { PasswordHashAlgorithm.SHA256 },
-};
-
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options => {
+    options.LegacyHashAlgorithms.Add(PasswordHashAlgorithm.SHA256);
+});
 
 foreach (var user in database.GetUsers())
 {
@@ -176,11 +166,9 @@ After running the script above, the hash strings in the database would now be co
 // The SHA256 algorithm must still be passed into the LegacyHashAlgorithms property since the chained
 // hashes contain a SHA256 component until they are rehashed.
 
-var options = new PasswordHasherOptions { 
-    LegacyHashAlgorithms = { PasswordHashAlgorithm.SHA256 },
-};
-
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options => {
+    options.LegacyHashAlgorithms.Add(PasswordHashAlgorithm.SHA256);
+});
 
 bool Login(string username, string password)
 {
@@ -211,11 +199,9 @@ Adding new hash encryption parameters is done in a similar manner as updating th
 // GetMasterKey10() should get the key from somewhere other than the database
 // (i.e. secure storage, config file, hard-coded, etc).
 
-var options = new PasswordHasherOptions { 
-    EncryptionParameters = new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey10()),
-};
-
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options => {
+    options.EncryptionParameters = new(10, HashEncryptionAlgorithm.AES128, GetMasterKey10());
+});
 
 // Update all hashes to use the encryption parameters:
 
@@ -231,14 +217,10 @@ database.SaveChanges();
 Updating the master key is done by adding another set of encryption parameters with a new ID and putting the old parameters into the `LegacyEncryptionParameters` collection so the hasher can still decrypt the old values:
 
 ```cs
-var options = new PasswordHasherOptions { 
-    EncryptionParameters = new HashEncryptionParameters(11, HashEncryptionAlgorithm.AES128, GetMasterKey11()),
-    LegacyEncryptionParameters = {
-        new HashEncryptionParameters(10, HashEncryptionAlgorithm.AES128, GetMasterKey10()),
-    },
-};
-
-var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options);
+var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 20000, options => {
+    options.EncryptionParameters = new(11, HashEncryptionAlgorithm.AES128, GetMasterKey11());
+    options.LegacyEncryptionParameters.Add(new(10, HashEncryptionAlgorithm.AES128, GetMasterKey10()));
+});
 
 // Update all hashes to use the new encryption parameters:
 

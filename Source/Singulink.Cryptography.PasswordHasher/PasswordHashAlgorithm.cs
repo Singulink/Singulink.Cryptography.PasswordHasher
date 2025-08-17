@@ -3,7 +3,7 @@
 namespace Singulink.Cryptography;
 
 /// <summary>
-/// Represents an iterative password hash algorithm such as PBKDF2-based algorithms or bcrypt/scrypt.
+/// Represents an iterative password hash algorithm.
 /// </summary>
 public abstract class PasswordHashAlgorithm
 {
@@ -66,21 +66,15 @@ public abstract class PasswordHashAlgorithm
     /// <returns>The resulting hash.</returns>
     public abstract byte[] Hash(byte[] password, byte[] salt, int iterations);
 
-    internal class Pbkdf2PasswordHashAlgorithm : PasswordHashAlgorithm
+    internal class Pbkdf2PasswordHashAlgorithm(string algorithmId, HashAlgorithmName algorithmName, int hashSize) : PasswordHashAlgorithm(algorithmId)
     {
-        public HashAlgorithmName AlgorithmName { get; }
+        public HashAlgorithmName AlgorithmName => algorithmName;
 
-        public int HashSize { get; }
-
-        public Pbkdf2PasswordHashAlgorithm(string algorithmId, HashAlgorithmName algorithmName, int hashSize) : base(algorithmId)
-        {
-            AlgorithmName = algorithmName;
-            HashSize = hashSize;
-        }
+        public int HashSize => hashSize;
 
         public override byte[] Hash(byte[] password, byte[] salt, int iterations)
         {
-#pragma warning disable CA5379 // Do Not Use Weak Key Derivation Function Algorithm; False-positive: https://github.com/dotnet/roslyn-analyzers/issues/4110
+#pragma warning disable CA5379 // Do Not Use Weak Key Derivation Function Algorithm
 
             using var rfc2898 = new Rfc2898DeriveBytes(password, salt, iterations, AlgorithmName);
 

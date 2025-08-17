@@ -1,6 +1,3 @@
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Singulink.Cryptography.Tests;
 
 [TestClass]

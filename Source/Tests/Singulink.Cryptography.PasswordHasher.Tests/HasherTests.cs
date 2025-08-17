@@ -1,6 +1,3 @@
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Singulink.Cryptography.Tests;
 
 [TestClass]
@@ -11,16 +8,18 @@ public class HasherTests
     private const string PasswordWithIllegalChars = "f3l43foj\nk*#lKSEF";
     private const string NotThePassword = "12345";
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(false, false)]
     [DataRow(false, true)]
     [DataRow(true, false)]
     [DataRow(true, true)]
     public void UpdateHashChain(bool normalize, bool encrypt)
     {
-        var options = new PasswordHasherOptions {
-            EncryptionParameters = encrypt ? new(123, HashEncryptionAlgorithm.AES128, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 }) : null,
-            Normalize = normalize,
+        byte[] encryptionKey123 = [43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6];
+
+        var optionsBuilder = (PasswordHasherOptions o) => {
+            o.EncryptionParameters = encrypt ? new(123, HashEncryptionAlgorithm.AES128, encryptionKey123) : null;
+            o.Normalize = normalize;
         };
 
         int extraHashSections = 0;
@@ -31,102 +30,109 @@ public class HasherTests
         if (encrypt)
             extraHashSections++;
 
-        var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 1000, options);
+        var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 1000, optionsBuilder);
 
         string sha256Hash1000Iterations = hasher.Hash(Password);
         Assert.AreEqual(2 + extraHashSections, sha256Hash1000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha256Hash1000Iterations));
+        Assert.AreEqual(sha256Hash1000Iterations, hasher.Update(sha256Hash1000Iterations));
         Assert.IsFalse(hasher.RequiresUpdate(sha256Hash1000Iterations));
         Assert.IsFalse(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Iterations, NotThePassword));
 
-        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 3000, options);
+        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 3000, optionsBuilder);
 
         Assert.IsTrue(hasher.RequiresUpdate(sha256Hash1000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Iterations, NotThePassword));
 
-        string sha256Hash1000Then2000Iterations = hasher.Update(sha256Hash1000Iterations)!;
-        Assert.IsNotNull(sha256Hash1000Then2000Iterations);
+        string sha256Hash1000Then2000Iterations = hasher.Update(sha256Hash1000Iterations);
+        Assert.AreNotEqual(sha256Hash1000Iterations, sha256Hash1000Then2000Iterations);
         Assert.AreEqual(3 + extraHashSections, sha256Hash1000Then2000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha256Hash1000Then2000Iterations));
+        Assert.AreEqual(sha256Hash1000Then2000Iterations, hasher.Update(sha256Hash1000Then2000Iterations));
         Assert.IsFalse(hasher.RequiresUpdate(sha256Hash1000Then2000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Then2000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Then2000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Then2000Iterations, NotThePassword));
 
-        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 8000, options);
+        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 8000, optionsBuilder);
         Assert.IsTrue(hasher.RequiresUpdate(sha256Hash1000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Then2000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Then2000Iterations, NotThePassword));
 
-        string sha256Hash1000Then2000Then5000Iterations = hasher.Update(sha256Hash1000Then2000Iterations)!;
-        Assert.IsNotNull(sha256Hash1000Then2000Then5000Iterations);
+        string sha256Hash1000Then2000Then5000Iterations = hasher.Update(sha256Hash1000Then2000Iterations);
+        Assert.AreNotEqual(sha256Hash1000Then2000Iterations, sha256Hash1000Then2000Then5000Iterations);
         Assert.AreEqual(4 + extraHashSections, sha256Hash1000Then2000Then5000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha256Hash1000Then2000Then5000Iterations));
+        Assert.AreEqual(sha256Hash1000Then2000Then5000Iterations, hasher.Update(sha256Hash1000Then2000Then5000Iterations));
         Assert.IsFalse(hasher.RequiresUpdate(sha256Hash1000Then2000Then5000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Then2000Then5000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Then2000Then5000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Then2000Then5000Iterations, NotThePassword));
 
-        string sha256Hash1000Then7000Iterations = hasher.Update(sha256Hash1000Iterations)!;
-        Assert.IsNotNull(sha256Hash1000Then7000Iterations);
+        string sha256Hash1000Then7000Iterations = hasher.Update(sha256Hash1000Iterations);
+        Assert.AreNotEqual(sha256Hash1000Iterations, sha256Hash1000Then7000Iterations);
         Assert.AreEqual(3 + extraHashSections, sha256Hash1000Then7000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha256Hash1000Then7000Iterations));
+        Assert.AreEqual(sha256Hash1000Then7000Iterations, hasher.Update(sha256Hash1000Then7000Iterations));
         Assert.IsFalse(hasher.RequiresUpdate(sha256Hash1000Then7000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha256Hash1000Then7000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha256Hash1000Then7000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha256Hash1000Then7000Iterations, NotThePassword));
 
-        options.LegacyHashAlgorithms.Add(PasswordHashAlgorithm.SHA256);
-        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options);
+        var optionsWithLegacyAlgoBuilder = (PasswordHasherOptions o) => {
+            optionsBuilder(o);
+            o.LegacyHashAlgorithms.Add(PasswordHashAlgorithm.SHA256);
+        };
 
-        string sha512HashFromSha256Hash1000Iterations = hasher.Update(sha256Hash1000Iterations)!;
-        Assert.IsNotNull(sha512HashFromSha256Hash1000Iterations);
+        hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, optionsWithLegacyAlgoBuilder);
+
+        string sha512HashFromSha256Hash1000Iterations = hasher.Update(sha256Hash1000Iterations);
+        Assert.AreNotEqual(sha256Hash1000Iterations, sha512HashFromSha256Hash1000Iterations);
         Assert.AreEqual(3 + extraHashSections, sha512HashFromSha256Hash1000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha512HashFromSha256Hash1000Iterations));
+        Assert.AreEqual(sha512HashFromSha256Hash1000Iterations, hasher.Update(sha512HashFromSha256Hash1000Iterations));
         Assert.IsFalse(hasher.RequiresUpdate(sha512HashFromSha256Hash1000Iterations));
         Assert.IsTrue(hasher.RequiresRehash(sha512HashFromSha256Hash1000Iterations, Password));
         Assert.IsTrue(hasher.Verify(sha512HashFromSha256Hash1000Iterations, Password));
         Assert.IsFalse(hasher.Verify(sha512HashFromSha256Hash1000Iterations, NotThePassword));
 
-        string sha512HashFromsha256Hash1000Then7000Iterations = hasher.Update(sha256Hash1000Then7000Iterations)!;
-        Assert.IsNotNull(sha512HashFromsha256Hash1000Then7000Iterations);
-        Assert.AreEqual(4 + extraHashSections, sha512HashFromsha256Hash1000Then7000Iterations.Split(' ').Length);
+        string sha512HashFromSha256Hash1000Then7000Iterations = hasher.Update(sha256Hash1000Then7000Iterations)!;
+        Assert.AreNotEqual(sha256Hash1000Then7000Iterations, sha512HashFromSha256Hash1000Then7000Iterations);
+        Assert.AreEqual(4 + extraHashSections, sha512HashFromSha256Hash1000Then7000Iterations.Split(' ').Length);
 
-        Assert.IsNull(hasher.Update(sha512HashFromsha256Hash1000Then7000Iterations));
-        Assert.IsFalse(hasher.RequiresUpdate(sha512HashFromsha256Hash1000Then7000Iterations));
-        Assert.IsTrue(hasher.RequiresRehash(sha512HashFromsha256Hash1000Then7000Iterations, Password));
-        Assert.IsTrue(hasher.Verify(sha512HashFromsha256Hash1000Then7000Iterations, Password));
-        Assert.IsFalse(hasher.Verify(sha512HashFromsha256Hash1000Then7000Iterations, NotThePassword));
+        Assert.AreEqual(sha512HashFromSha256Hash1000Then7000Iterations, hasher.Update(sha512HashFromSha256Hash1000Then7000Iterations));
+        Assert.IsFalse(hasher.RequiresUpdate(sha512HashFromSha256Hash1000Then7000Iterations));
+        Assert.IsTrue(hasher.RequiresRehash(sha512HashFromSha256Hash1000Then7000Iterations, Password));
+        Assert.IsTrue(hasher.Verify(sha512HashFromSha256Hash1000Then7000Iterations, Password));
+        Assert.IsFalse(hasher.Verify(sha512HashFromSha256Hash1000Then7000Iterations, NotThePassword));
     }
 
     [TestMethod]
     public void UpdateMasterKey()
     {
-        HashEncryptionParameters encryption1 = new(123, HashEncryptionAlgorithm.AES128, new byte[] { 43, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 });
-        HashEncryptionParameters encryption2 = new(456, HashEncryptionAlgorithm.AES128, new byte[] { 44, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6 });
+        byte[] encryptionKey123 = [1, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6];
+        byte[] encryptionKey456 = [100, 12, 64, 63, 1, 6, 74, 123, 4, 15, 11, 84, 26, 125, 11, 6];
 
-        var options1 = new PasswordHasherOptions {
-            EncryptionParameters = encryption1,
+        HashEncryptionParameters encryption1 = new(123, HashEncryptionAlgorithm.AES128, encryptionKey123);
+        HashEncryptionParameters encryption2 = new(456, HashEncryptionAlgorithm.AES128, encryptionKey456);
+
+        var optionsBuilder1 = (PasswordHasherOptions o) => {
+            o.EncryptionParameters = encryption1;
         };
 
-        var options2_0 = new PasswordHasherOptions {
-            EncryptionParameters = encryption2,
+        var optionsBuilder2_0 = (PasswordHasherOptions o) => {
+            o.EncryptionParameters = encryption2;
         };
 
-        var options2_1 = new PasswordHasherOptions {
-            EncryptionParameters = encryption2,
-            LegacyEncryptionParameters = { encryption1 },
+        var optionsBuilder2_1 = (PasswordHasherOptions o) => {
+            o.EncryptionParameters = encryption2;
+            o.LegacyEncryptionParameters.Add(encryption1);
         };
 
         var hasher = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000);
@@ -135,30 +141,30 @@ public class HasherTests
         Assert.IsTrue(hasher.Verify(hash, Password));
         Assert.IsFalse(hasher.Verify(hash, NotThePassword));
 
-        var hasher1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options1);
+        var hasher1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, optionsBuilder1);
         Assert.IsTrue(hasher1.RequiresUpdate(hash));
 
-        string hash1 = hasher1.Update(hash)!;
+        string hash1 = hasher1.Update(hash);
         Assert.AreNotEqual(hash1, hash);
 
         Assert.IsTrue(hasher1.Verify(hash1, Password));
         Assert.IsFalse(hasher1.Verify(hash1, NotThePassword));
-        Assert.ThrowsException<FormatException>(() => hasher.Verify(hash1, Password));
+        Assert.ThrowsExactly<FormatException>(() => hasher.Verify(hash1, Password));
 
-        var hasher2_0 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options2_0);
+        var hasher2_0 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, optionsBuilder2_0);
         Assert.IsTrue(hasher2_0.RequiresUpdate(hash));
-        Assert.ThrowsException<FormatException>(() => hasher2_0.RequiresUpdate(hash1));
+        Assert.ThrowsExactly<FormatException>(() => hasher2_0.RequiresUpdate(hash1));
 
-        string hash2_0 = hasher2_0.Update(hash)!;
+        string hash2_0 = hasher2_0.Update(hash);
         Assert.IsTrue(hasher2_0.Verify(hash2_0, Password));
         Assert.IsFalse(hasher2_0.Verify(hash2_0, NotThePassword));
-        Assert.ThrowsException<FormatException>(() => hasher2_0.Update(hash1));
+        Assert.ThrowsExactly<FormatException>(() => hasher2_0.Update(hash1));
 
-        var hasher2_1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, options2_1);
+        var hasher2_1 = new PasswordHasher(PasswordHashAlgorithm.SHA512, 1000, optionsBuilder2_1);
         Assert.IsTrue(hasher2_1.RequiresUpdate(hash));
         Assert.IsTrue(hasher2_1.RequiresUpdate(hash1));
 
-        string hash2_1 = hasher2_1.Update(hash1)!;
+        string hash2_1 = hasher2_1.Update(hash1);
         Assert.AreNotEqual(hash2_1, hash2_0); // AES IV values should be different for each encryption
         Assert.AreNotEqual(hash2_1, hash1);
 
@@ -174,8 +180,8 @@ public class HasherTests
     [TestMethod]
     public void Normalization()
     {
-        PasswordHasherOptions options = new() { Normalize = false };
-        PasswordHasher hasher = new(PasswordHashAlgorithm.SHA384, 100, options);
+        PasswordHasherOptions options = new(PasswordHashAlgorithm.SHA384, 100) { Normalize = false };
+        PasswordHasher hasher = new(options);
 
         string hash = hasher.Hash(Password);
         Assert.IsFalse(hasher.RequiresUpdate(hash));
@@ -184,7 +190,7 @@ public class HasherTests
         Assert.IsFalse(hasher.Verify(hash, PasswordWithNormalSpace));
 
         options.Normalize = true;
-        hasher = new(PasswordHashAlgorithm.SHA384, 100, options);
+        hasher = new(options);
         Assert.IsFalse(hasher.RequiresUpdate(hash));
         Assert.IsTrue(hasher.RequiresRehash(hash, Password));
 
@@ -197,8 +203,8 @@ public class HasherTests
     [TestMethod]
     public void RehashWithIllegalChars()
     {
-        PasswordHasherOptions options = new() { Normalize = false };
-        PasswordHasher hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
+        PasswordHasherOptions options = new(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
+        PasswordHasher hasher = new(options);
         string hash = hasher.Hash(PasswordWithIllegalChars);
         Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
         Assert.IsTrue(hasher.Verify(hash, PasswordWithIllegalChars));
@@ -206,7 +212,7 @@ public class HasherTests
         Assert.IsFalse(hasher.RequiresRehash(hash, PasswordWithIllegalChars));
 
         options.Normalize = true;
-        hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
+        hasher = new(options);
         Assert.IsFalse(hasher.RequiresRehash(hash, PasswordWithIllegalChars));
 
         hasher = new PasswordHasher(PasswordHashAlgorithm.SHA256, 400);
@@ -221,14 +227,14 @@ public class HasherTests
     [TestMethod]
     public void RehashWithLegalChars()
     {
-        PasswordHasherOptions options = new() { Normalize = false };
-        PasswordHasher hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
+        PasswordHasherOptions options = new(PasswordHashAlgorithm.SHA256, 200) { Normalize = false };
+        PasswordHasher hasher = new(options);
         string hash = hasher.Hash(Password);
         Assert.IsFalse(hash.StartsWith("!", StringComparison.Ordinal));
         Assert.IsTrue(hasher.Verify(hash, Password));
 
         options.Normalize = true;
-        hasher = new(PasswordHashAlgorithm.SHA256, 200, options);
+        hasher = new(options);
         Assert.IsTrue(hasher.RequiresRehash(hash, Password));
 
         hash = hasher.Rehash(Password);
@@ -242,7 +248,7 @@ public class HasherTests
     public void DisallowSHA1()
     {
         #pragma warning disable CS0618 // Type or member is obsolete
-        Assert.ThrowsException<ArgumentException>(() => new PasswordHasher(PasswordHashAlgorithm.SHA1, 1));
+        Assert.ThrowsExactly<ArgumentException>(() => new PasswordHasher(PasswordHashAlgorithm.SHA1, 1));
         #pragma warning restore CS0618 // Type or member is obsolete
     }
 
@@ -254,9 +260,9 @@ public class HasherTests
 
         hasher = new PasswordHasher(PasswordHashAlgorithm.SHA384, 10);
 
-        Assert.ThrowsException<FormatException>(() => hasher.RequiresUpdate(hash));
-        Assert.ThrowsException<FormatException>(() => hasher.Update(hash));
-        Assert.ThrowsException<FormatException>(() => hasher.RequiresRehash(hash, Password));
-        Assert.ThrowsException<FormatException>(() => hasher.Verify(hash, Password));
+        Assert.ThrowsExactly<FormatException>(() => hasher.RequiresUpdate(hash));
+        Assert.ThrowsExactly<FormatException>(() => hasher.Update(hash));
+        Assert.ThrowsExactly<FormatException>(() => hasher.RequiresRehash(hash, Password));
+        Assert.ThrowsExactly<FormatException>(() => hasher.Verify(hash, Password));
     }
 }
