@@ -10,6 +10,11 @@ namespace Singulink.Cryptography;
 public sealed class PasswordHasherOptions
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="PasswordHasherOptions"/> class.
+    /// </summary>
+    public PasswordHasherOptions() { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PasswordHasherOptions"/> class with the specified algorithm and iteration count.
     /// </summary>
     /// <param name="algorithm">The main password hashing algorithm.</param>
