@@ -98,14 +98,14 @@ public sealed class PasswordHasher : IPasswordHasher
     /// </summary>
     /// <param name="algorithm">The main password hashing algorithm.</param>
     /// <param name="iterations">The number of hashing iterations to perform.</param>
-    /// <param name="optionsBuilder">Optional builder function that configures additional options.</param>
-    public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, Action<PasswordHasherOptions>? optionsBuilder = null)
-        : this(BuildOptions(algorithm, iterations, optionsBuilder)) { }
+    /// <param name="configure">An optional action that configures additional options.</param>
+    public PasswordHasher(PasswordHashAlgorithm algorithm, int iterations, Action<PasswordHasherOptions>? configure = null)
+        : this(BuildOptions(algorithm, iterations, configure)) { }
 
-    private static PasswordHasherOptions BuildOptions(PasswordHashAlgorithm algorithm, int iterations, Action<PasswordHasherOptions>? optionsBuilder)
+    private static PasswordHasherOptions BuildOptions(PasswordHashAlgorithm algorithm, int iterations, Action<PasswordHasherOptions>? configure)
     {
         var options = new PasswordHasherOptions(algorithm, iterations);
-        optionsBuilder?.Invoke(options);
+        configure?.Invoke(options);
         return options;
     }
 
