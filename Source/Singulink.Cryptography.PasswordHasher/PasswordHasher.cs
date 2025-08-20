@@ -57,23 +57,27 @@ public sealed class PasswordHasher : IPasswordHasher
     /// <param name="options">Any additional options that should be applied to the password hasher.</param>
     public PasswordHasher(PasswordHasherOptions options)
     {
+        if (options.Algorithm is null || options.Iterations <= 0)
+            throw new ArgumentException("Algorithm and iterations must be set in the options.", nameof(options));
+
         Algorithm = options.Algorithm;
-        _algorithmLookup.Add(Algorithm.Id, Algorithm);
         Iterations = options.Iterations;
 
         SaltSize = options.SaltSize;
         Normalize = options.Normalize;
 
-        if (options.EncryptionParameters is { } ep)
-        {
-            EncryptionParameters = ep;
-            _encryptionLookup.Add(ep.Id, ep);
-        }
+        _algorithmLookup.Add(Algorithm.Id, Algorithm);
 
         foreach (var a in options.LegacyHashAlgorithms)
         {
             if (!_algorithmLookup.TryAdd(a.Id, a))
                 throw new ArgumentException("Hash algorithms must all have unique IDs.", nameof(options));
+        }
+
+        if (options.EncryptionParameters is { } ep)
+        {
+            EncryptionParameters = ep;
+            _encryptionLookup.Add(ep.Id, ep);
         }
 
         foreach (var p in options.LegacyEncryptionParameters)
