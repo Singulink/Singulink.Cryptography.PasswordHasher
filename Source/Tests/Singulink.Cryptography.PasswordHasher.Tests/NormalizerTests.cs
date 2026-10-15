@@ -12,6 +12,6 @@ public class NormalizerTests
         string normalized = PasswordNormalizer.Normalize(Password);
 
         Assert.AreNotEqual(Password, normalized);
-        Assert.AreEqual(normalized, PasswordWithNormalSpace);
+        Assert.AreEqual(PasswordWithNormalSpace, normalized);
     }
 }
